@@ -9,12 +9,21 @@ import mimetypes
 
 from . import utils
 from .resource import Resource
-from .exceptions import ConflictException, NotFound
+from .exceptions import Conflict, NotFound
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
 
 class Server(object):
+    """
+    Class that represents a couchdb connection.
+
+    :param base_url: a full url to couchdb (can contain auth data).
+    :param full_commit: If ``False``, couchdb not commits all data on a request is finished.
+    :param authmethod: specify a authentication method. By default use a "session" method but also exists
+            "basic" (that uses http basic auth).
+    """
+
     def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True, authmethod="session"):
         self.base_url = base_url
         self.base_url, credentials = utils._extract_credentials(base_url)
@@ -33,27 +42,65 @@ class Server(object):
         return len(utils.as_json(rs))
 
     def info(self):
+        """
+        Get server info.
+
+        :returns: dict with all data that couchdb returns.
+        :rtype: dict
+        """
         r = self.resource.get()
         return utils.as_json(r)
 
     def delete(self, name):
+        """
+        Delete some database.
+
+        :param name: database name
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a database does not exists
+        """
+
         r = self.resource.delete(name)
         if r.status_code == 404:
             raise NotFound("database {0} not found".format(name))
 
     def database(self, name):
+        """
+        Get a database instance.
+
+        :param name: database name
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a database does not exists
+
+        :returns: a :py:class:`~pycouchdb.client.Database` instance
+        """
+        r = self.resource.head(name)
+        if r.status_code == 404:
+            raise NotFound("Database '{0}' does not exists".format(name))
+
         db = Database(self.resource(name), name)
         return db
 
     def config(self):
+        """
+        Get a current config data.
+        """
         r = self.resource.get("_config")
         return utils.as_json(r)
 
     def version(self):
+        """
+        Get the current version of a couchdb server.
+        """
         r = self.resource.get()
         return utils.as_json(r)["version"]
 
     def stats(self, name=None):
+        """
+        Get runtime stats.
+
+        :param name: if is not None, get stats identified by a name.
+        :returns: dict
+        """
+
         if not name:
             r = self.resource.get("_stats")
             return utils.as_json(r)
@@ -64,8 +111,19 @@ class Server(object):
         return data['couchdb'][name]
 
     def create(self, name):
+        """
+        Create a database.
+
+        :param name: database name
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a database already exists
+        :returns: a :py:class:`~pycouchdb.client.Database` instance
+        """
         r = self.resource.put(name)
-        return self.database(name)
+        if r.status_code in (200, 201):
+            return self.database(name)
+
+        data = utils.as_json(r)
+        raise Conflict(data["reason"])
 
 
 def _id_to_path(id):
@@ -75,6 +133,10 @@ def _id_to_path(id):
 
 
 class Database(object):
+    """
+    Class that represents a couchdb database.
+    """
+
     def __init__(self, resource, name):
         self.resource = resource
         self.name = name
@@ -88,20 +150,43 @@ class Database(object):
         return utils.as_json(r)['doc_count']
 
     def delete(self, id):
+        """
+        Delete document by id.
+
+        :param id: document id
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document not exists
+
+        :returns: document (dict)
+        """
         resource = self.resource(*_id_to_path(id))
 
         r = resource.head()
-        if r.status_code > 205:
+        if r.status_code == 404:
             raise NotFound("doc not found")
 
         r = resource.delete(params={"rev": r.headers["etag"].strip('"')})
-        return r.status_code < 205
+        return r.status_code < 206
 
     def get(self, id, params={}):
+        """
+        Get a document by id.
+
+        :param id: document id
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document not exists
+
+        :returns: document (dict)
+        """
+
         r = self.resource(*_id_to_path(id)).get(params=params)
         return utils.as_json(r)
 
     def save(self, doc):
+        """
+        Save or update a document.
+
+        :param doc: document
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
+        """
         if "_id" not in doc:
             doc['_id'] = uuid.uuid4().hex
 
@@ -110,14 +195,20 @@ class Database(object):
         d = utils.as_json(r)
 
         if r.status_code == 409:
-            raise ConflictException(d['reason'])
+            raise Conflict(d['reason'])
 
         if "rev" in d and d["rev"] is not None:
             doc["_rev"] = d["rev"]
 
-        return d['ok']
-
     def save_bulk(self, docs, transaction=True):
+        """
+        Save a bulk of documents.
+
+        :param docs: list of docs
+        :param transaction: if ``True``, couchdb do a insert in transaction model
+        :returns: (ok, results)
+        """
+
         for doc in docs:
             if "_id" not in doc:
                 doc["_id"] = uuid.uuid4().hex
@@ -136,6 +227,12 @@ class Database(object):
         return ok, results
 
     def all(self, wrapper=None, **kwargs):
+        """
+        Execute a builtin view for get all documents.
+
+        :returns: generator object
+        """
+
         params = copy.copy(kwargs)
         params.update({"include_docs": "true"})
         data = None
@@ -159,28 +256,47 @@ class Database(object):
             yield wrapper(row['doc'])
 
     def cleanup(self):
+        """
+        Execute a cleanup operation.
+        """
         r = self.resource('_view_cleanup').post()
         return utils.as_json(r)
 
     def commit(self):
+        """
+        Send commit message to server.
+        """
         r = self.resource.post('_ensure_full_commit')
         return utils.as_json(r)
 
-    def conflicts(self, id):
-        r = self.resource.get(id, params={"conflicts": "true"})
-        return utils.as_json(r)
-
     def compact(self):
+        """
+        Send compact message to server.
+        """
         r = self.resource("_compact").post()
         return utils.as_json(r)
 
     def compact_view(self, ddoc):
+        """
+        Execute compact over design view.
+
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
+        """
         r = self.resource("_compact", ddoc).post()
         if r.status_code == 404:
             raise NotFound("view {0} not found".format(ddoc))
         return utils.as_json(r)
 
     def revisions(self, id, params={}):
+        """
+        Get all revisions of one document.
+
+        :param id: document id
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
+
+        :returns: generator object
+        """
+
         resource = self.resource(id)
         r = resource.get(params={'revs_info': 'true'})
         if r.status_code == 404:
@@ -192,18 +308,40 @@ class Database(object):
                 yield self.get(id, params=params)
 
     def delete_attachment(self, doc, filename):
+        """
+        Delete attachment by filename from document.
+        """
         resource = self.resource(doc['_id'])
         r = resource.delete(filename, params={'rev': doc['_rev']})
-        data = utils.as_json(r)
+        if r.status_code == 404:
+            raise NotFound("filename {0} not found".format(filename))
 
+        data = utils.as_json(r)
         doc['_rev'] = data['rev']
         return data['ok']
 
     def get_attachment(self, doc, filename):
+        """
+        Get attachment by filename from document.
+
+        :returns: binary data
+        """
         r = self.resource(doc['_id']).get(filename, stream=False)
         return r.content
 
     def put_attachment(self, doc, content, filename=None, content_type=None):
+        """
+        Put a attachment to a document.
+
+        :param doc: document dict.
+        :param content: the content to upload, either a file-like object or bytes
+        :param filename: the name of the attachment file; if omitted, this
+                         function tries to get the filename from the file-like
+                         object passed as the `content` argument value
+
+        :raises: ValueError
+        """
+
         if filename is None:
             if hasattr(content, 'name'):
                 filename = os.path.basename(content.name)
@@ -222,7 +360,6 @@ class Database(object):
 
         data = utils.as_json(r)
         doc['_rev'] = data['rev']
-
         return data['ok']
 
     def _query(self, resource, data=None, params={}, headers={}, wrapper=None):
@@ -239,6 +376,15 @@ class Database(object):
 
     def temporary_query(self, map_func, reduce_func=None,
                         language='javascript', wrapper=None, **kwargs):
+        """
+        Execute a temporary view.
+
+        :param map_func: unicode string with a map function definition.
+        :param reduce_func: unicode string with a reduce function definition.
+        :param language: language used for define above functions.
+
+        :returns: generator object
+        """
         params = copy.copy(kwargs)
         data = {'map': map_func, 'language': language}
 
@@ -255,6 +401,12 @@ class Database(object):
                                             data=data, wrapper=wrapper)
 
     def query(self, name, wrapper=None, **kwargs):
+        """
+        Execute a design document view query.
+
+        :param name: name of the view (eg: docidname/viewname)
+        :returns: generator object
+        """
         params = copy.copy(kwargs)
         path = utils._path_from_name(name, '_view')
         data = None

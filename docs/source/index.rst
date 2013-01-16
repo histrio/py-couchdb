@@ -43,3 +43,4 @@ This part of the documentation makes a simple introduction of py-couchdb usage.
    
    install.rst
    quickstart.rst
+   api.rst

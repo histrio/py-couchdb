@@ -4,7 +4,7 @@ import unittest
 import tempfile
 import pycouchdb as couchdb
 
-from pycouchdb.exceptions import ConflictException, NotFound
+from pycouchdb.exceptions import Conflict, NotFound
 
 SERVER_URL = 'http://admin:admin@localhost:5984/'
 
@@ -22,10 +22,16 @@ class ServerTests(unittest.TestCase):
         self.assertNotEqual(len(self.s), 0)
 
     def test_create_delete_db(self):
-        db = self.s.create("testing")
-        self.assertIn("testing", self.s)
-        self.assertTrue(self.s.delete("testing"))
-        self.assertNotIn("testing", self.s)
+        db = self.s.create("testing2")
+        self.assertIn("testing2", self.s)
+        self.s.delete("testing2")
+        self.assertNotIn("testing2", self.s)
+
+    def test_create(self):
+        db = self.s.create("testing1")
+        with self.assertRaises(Conflict):
+            self.s.create("testing1")
+        self.s.delete("testing1")
 
     def test_stats_01(self):
         stats = self.s.stats()
@@ -58,36 +64,30 @@ class DatabaseTests(unittest.TestCase):
 
     def test_save_01(self):
         doc = {"foo": "bar"}
-        ok = self.db.save(doc)
+        self.db.save(doc)
 
         self.assertIn("_id", doc)
         self.assertIn("_rev", doc)
-        self.assertTrue(ok)
 
     def test_save_02(self):
         doc = {'_id': 'kk', 'foo':'bar'}
-        ok = self.db.save(doc)
+        self.db.save(doc)
 
         self.assertIn("_rev", doc)
-        self.assertTrue(ok)
         self.assertEqual(doc["_id"], "kk")
 
     def test_save_03(self):
         doc = {'_id': 'kk', 'foo':'bar'}
-        ok1 = self.db.save(doc)
-        ok2 = self.db.save(doc)
-
-        self.assertTrue(ok1)
-        self.assertTrue(ok2)
+        self.db.save(doc)
+        self.db.save(doc)
 
     def test_save_04(self):
         doc = {'_id': 'kk', 'foo':'bar'}
-        ok = self.db.save(doc)
-        self.assertTrue(ok)
+        self.db.save(doc)
 
         del doc["_rev"]
-        with self.assertRaises(ConflictException):
-            ok2 = self.db.save(doc)
+        with self.assertRaises(Conflict):
+            self.db.save(doc)
 
     def test_len(self):
         doc = {'_id': 'kk', 'foo':'bar'}
@@ -166,9 +166,6 @@ class DatabaseQueryTests(unittest.TestCase):
         result = list(self.db.all(keys=['kk1','kk2']))
         self.assertEqual(len(result), 2)
 
-    def test_get_conflicts(self):
-        self.assertTrue(self.db.conflicts("kk1"))
-
     def test_revisions_01(self):
         doc = self.db.get("kk1")
 
@@ -176,8 +173,7 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertEqual(len(initial_revisions), 1)
 
         doc["name"] = "Fooo"
-        ok = self.db.save(doc)
-        self.assertTrue(ok)
+        self.db.save(doc)
 
         revisions = list(self.db.revisions("kk1"))
         self.assertEqual(len(revisions), 2)
@@ -219,8 +215,7 @@ class DatabaseQueryTests(unittest.TestCase):
             }
         }
 
-        ok = self.db.save(doc)
-        self.assertTrue(ok)
+        self.db.save(doc)
 
         result = self.db.query("testing/names", group='true', keys=['Andrey'])
         result = list(result)
@@ -237,10 +232,8 @@ class DatabaseQueryTests(unittest.TestCase):
             }
         }
 
-        ok = self.db.save(doc)
-        self.assertTrue(ok)
-
-        ok = self.db.compact_view("testing")
+        self.db.save(doc)
+        self.db.compact_view("testing")
 
     def test_compact_view_02(self):
         with self.assertRaises(NotFound):
@@ -266,8 +259,7 @@ class DatabaseTests3(unittest.TestCase):
             f.write(b"Hello World")
             f.seek(0)
 
-            ok = self.db.put_attachment(doc, f, "sample.txt")
-            self.assertTrue(ok)
+            self.db.put_attachment(doc, f, "sample.txt")
 
         doc = self.db.get("kk1")
         self.assertIn("_attachments", doc)
@@ -275,9 +267,7 @@ class DatabaseTests3(unittest.TestCase):
         data = self.db.get_attachment(doc, "sample.txt")
         self.assertEqual(data, b"Hello World")
 
-        ok = self.db.delete_attachment(doc, "sample.txt")
-        self.assertTrue(ok)
-
+        self.db.delete_attachment(doc, "sample.txt")
         doc = self.db.get("kk1")
         self.assertNotIn("_attachments", doc)
 
@@ -288,8 +278,7 @@ class DatabaseTests3(unittest.TestCase):
             f.write(b"Hello World")
             f.seek(0)
 
-            ok = self.db.put_attachment(doc, f)
-            self.assertTrue(ok)
+            self.db.put_attachment(doc, f)
 
         doc = self.db.get("kk1")
         self.assertIn("_attachments", doc)

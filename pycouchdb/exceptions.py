@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-class ConflictException(Exception):
+class Conflict(Exception):
     pass
 
 class NotFound(Exception):
