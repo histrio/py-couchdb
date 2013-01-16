@@ -38,7 +38,8 @@ class Server(object):
 
     def delete(self, name):
         r = self.resource.delete(name)
-        return r.status_code == 200
+        if r.status_code == 404:
+            raise NotFound("database {0} not found".format(name))
 
     def database(self, name):
         db = Database(self.resource(name), name)
