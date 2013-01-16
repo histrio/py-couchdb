@@ -11,7 +11,7 @@ Distribute & Pip
 
 Installing ``py-couchdb`` is simple with `pip <http://www.pip-installer.org/>`_::
 
-    $ pip install py-couchdb
+    $ pip install pycouchdb
 
 
 Cheeseshop Mirror
@@ -20,7 +20,7 @@ Cheeseshop Mirror
 If the Cheeseshop is down, you can also install Requests from one of the
 mirrors. `Crate.io <http://crate.io>`_ is one of them::
 
-    $ pip install -i http://simple.crate.io/ py-couchdb
+    $ pip install -i http://simple.crate.io/ pycouchdb
 
 
 Get the Code

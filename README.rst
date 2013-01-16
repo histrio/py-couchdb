@@ -34,4 +34,4 @@ To install py-couchdb, simply:
 
 .. code-block:: console
 
-    pip install py-couchdb
+    pip install pycouchdb
