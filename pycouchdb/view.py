@@ -32,14 +32,14 @@ def run(input=sys.stdin, output=sys.stdout):
     functions = []
 
     def _writejson(obj):
-        obj = json.encode(obj)
+        obj = json.dumps(obj)
         output.write(obj)
         output.write('\n')
         output.flush()
 
     def _log(message):
         if not isinstance(message, str):
-            message = json.encode(message)
+            message = json.dumps(message)
         _writejson({'log': message})
 
     def reset(config=None):
@@ -127,14 +127,14 @@ def run(input=sys.stdin, output=sys.stdout):
 
     handlers = {'reset': reset, 'add_fun': add_fun, 'map_doc': map_doc,
                 'reduce': reduce, 'rereduce': rereduce}
-
     try:
         while True:
             line = input.readline()
+
             if not line:
                 break
             try:
-                cmd = json.decode(line)
+                cmd = json.loads(line)
                 log.debug('Processing %r', cmd)
             except ValueError as e:
                 log.error('Error: %s', e, exc_info=True)

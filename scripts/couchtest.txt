@@ -1,0 +1,4 @@
+["reset",{"reduce_limit":true,"timeout":5000}]
+["add_fun","def fun(doc):\n    if doc['name']:\n        yield doc['name'], None"]
+["map_doc",{"_id":"8b588fa0a3b74a299c6d958467994b9a","_rev":"1-b2c55c793dbe1aca93e9e07d87c49da6","name":"Fooo"}]
+["map_doc",{"_id":"8b588fa0a3b74a299c6d958467994b9a","_rev":"1-b2c55c793dbe1aca93e9e07d87c49da6","name":"Fooo2"}]

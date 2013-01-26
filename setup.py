@@ -5,14 +5,14 @@ description = "Modern pure python CouchDB Client."
 setup(
     name = "pycouchdb",
     url = "https://github.com/niwibe/py-couchdb",
-    author = "Andrei Antoukh",
+    author = "Andrey Antukh",
     author_email = "niwi@niwi.be",
-    version='1.0',
+    version='1.1',
     packages = [
         "pycouchdb",
     ],
     description = description.strip(),
-    zip_safe=False,
+    zip_safe = False,
     include_package_data = True,
     classifiers = [
         #"Development Status :: 5 - Production/Stable",
@@ -30,4 +30,10 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
     ],
+    entry_points = {
+        'console_scripts': [
+            'couchpy = pycouchdb.view:main'
+        ],
+    },
+    install_requires = ["requests"]
 )
