@@ -94,8 +94,7 @@ You can create a own document:
 
 .. code-block:: python
 
-    >>> doc = {"name": "FOO"}
-    >>> db.save(doc)
+    >>> doc = db.save({"name": "FOO"})
     >>> doc
     {'_rev': '1-6a1be826ddbd67649df8aa1e0bf12da1', 
     '_id': 'ef9e608db6434dd39ab3dc4cf35d22b7', 'name': 'FOO'}
@@ -129,7 +128,7 @@ And this is a way for make a query using a predefined views:
 
 .. code-block:: python
 
-    >>> doc = { 
+    >>> _doc = { 
     ...    "_id": "_design/testing",
     ...    "views": {
     ...        "names": {
@@ -138,6 +137,6 @@ And this is a way for make a query using a predefined views:
     ...        }   
     ...    }   
     ...} 
-    >>> db.save(doc)
+    >>> doc = db.save(_doc)
     >>> list(db.query("testing/names", group='true'))
     [{'value': 1, 'key': 'Fooo'}]

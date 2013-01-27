@@ -1,3 +1,10 @@
+Version 1.2
+-----------
+
+- All methods that can receive document, do not modify id (inmutable api?)
+- Add delete_bulk methods.
+- A lot of fixes and improvements on tests.
+
 Version 1.1
 -----------
 
