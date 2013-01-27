@@ -153,6 +153,9 @@ class Database(object):
         """
         Delete document by id.
 
+        .. versionchanged:: 1.2
+            Accept document or id.
+
         :param doc_or_id: document or id
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document not exists
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if delete with wrong revision.
@@ -180,6 +183,8 @@ class Database(object):
     def delete_bulk(self, docs, transaction=True):
         """
         Delete a bulk of documents.
+
+        .. versionadded:: 1.2
 
         :param docs: list of docs
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a delete is not success
@@ -219,6 +224,9 @@ class Database(object):
         """
         Save or update a document.
 
+        .. versionchanged:: 1.2
+            Now returns a new document instead of modify the original.
+
         :param doc: document
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
         :returns: doc
@@ -243,6 +251,9 @@ class Database(object):
     def save_bulk(self, docs, transaction=True):
         """
         Save a bulk of documents.
+
+        .. versionchanged:: 1.2
+            Now returns a new document list instead of modify the original.
 
         :param docs: list of docs
         :param transaction: if ``True``, couchdb do a insert in transaction model
@@ -353,6 +364,9 @@ class Database(object):
         """
         Delete attachment by filename from document.
 
+        .. versionchanged:: 1.2
+            Now returns a new document instead of modify the original.
+
         :param doc: document dict
         :param filename: name of attachment.
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
@@ -384,6 +398,9 @@ class Database(object):
     def put_attachment(self, doc, content, filename=None, content_type=None):
         """
         Put a attachment to a document.
+
+        .. versionchanged:: 1.2
+            Now returns a new document instead of modify the original.
 
         :param doc: document dict.
         :param content: the content to upload, either a file-like object or bytes
