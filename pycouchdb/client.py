@@ -167,6 +167,30 @@ class Database(object):
         r = resource.delete(params={"rev": r.headers["etag"].strip('"')})
         return r.status_code < 206
 
+    def delete_bulk(self, docs):
+        """
+        Delete a bulk of documents.
+
+        :param docs: list of docs
+
+        :returns: (ok, results)
+        """
+        for doc in docs:
+                if "_deleted" not in doc:
+                        doc["_deleted"] = True
+
+        data = utils.to_json({"docs" : docs}).encode("utf-8")
+        r = self.resource.post("_bulk_docs", data=data)
+
+        ok = True
+        results = utils.as_json(r)
+        for result, doc in zip(results, docs):
+            if "error" in result:
+                ok = False
+                break
+
+        return ok, results
+
     def get(self, id, params={}):
         """
         Get a document by id.
