@@ -50,7 +50,7 @@ def run(input=sys.stdin, output=sys.stdout):
         string = BOM_UTF8 + string.encode('utf-8')
         globals_ = {}
         try:
-            exec(string, {'log': _log}, globals_)
+            exec string in {'log': _log}, globals_
         except Exception as e:
             return {'error': {
                 'id': 'map_compilation_error',
@@ -86,7 +86,7 @@ def run(input=sys.stdin, output=sys.stdout):
         args = cmd[1]
         globals_ = {}
         try:
-            exec(code, {'log': _log}, globals_)
+            exec code in {'log': _log}, globals_
         except Exception as e:
             log.error('runtime error in reduce function: %s', e,
                       exc_info=True)

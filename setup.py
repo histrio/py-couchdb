@@ -2,6 +2,11 @@ from setuptools import setup
 
 description = "Modern pure python CouchDB Client."
 
+try:
+   from distutils.command.build_py import build_py_2to3 as build_py
+except ImportError:
+    from distutils.command.build_py import build_py
+
 setup(
     name = "pycouchdb",
     url = "https://github.com/niwibe/py-couchdb",
@@ -35,5 +40,6 @@ setup(
             'couchpy = pycouchdb.view:main'
         ],
     },
+    cmdclass = {'build_py': build_py},
     install_requires = ["requests"]
 )
