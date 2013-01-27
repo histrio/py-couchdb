@@ -11,8 +11,7 @@ Advantages of py-couchdb
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 - Use `requests`_ for http requests (much faster than the standard library)
-- 96% test coverage.
-- Python2 and Python3 compatible with same codebase.
+- Python2 and Python3 compatible with same codebase (with one exception, python view server that uses 2to3)
 - Also compatible with pypy.
 
 .. _requests: http://docs.python-requests.org/en/latest/
