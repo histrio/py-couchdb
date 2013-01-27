@@ -9,8 +9,9 @@ from pycouchdb.exceptions import Conflict, NotFound
 SERVER_URL = 'http://admin:admin@localhost:5984/'
 
 class ServerTests(unittest.TestCase):
-    def setUp(self):
-        self.s = couchdb.Server(SERVER_URL, authmethod="basic")
+    @classmethod
+    def setUpClass(cls):
+        cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
 
     def test_contains(self):
         self.assertIn("_users", self.s)
@@ -55,79 +56,86 @@ class ServerTests(unittest.TestCase):
 
 
 class DatabaseTests(unittest.TestCase):
-    def setUp(self):
-        self.s = couchdb.Server(SERVER_URL)
-        self.db = self.s.create('testing')
+    @classmethod
+    def setUpClass(cls):
+        cls.s = couchdb.Server(SERVER_URL)
+        cls.db = cls.s.create('testing5')
 
-    def tearDown(self):
-        self.s.delete("testing")
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.delete("testing5")
 
     def test_save_01(self):
         doc = {"foo": "bar"}
-        self.db.save(doc)
+        doc2 = self.db.save(doc)
 
-        self.assertIn("_id", doc)
-        self.assertIn("_rev", doc)
+        self.assertIn("_id", doc2)
+        self.assertIn("_rev", doc2)
+        self.assertNotIn("_id", doc)
+        self.assertNotIn("_rev", doc)
 
     def test_save_02(self):
-        doc = {'_id': 'kk', 'foo':'bar'}
-        self.db.save(doc)
-
+        doc = self.db.save({'_id': 'kk', 'foo':'bar'})
         self.assertIn("_rev", doc)
         self.assertEqual(doc["_id"], "kk")
 
     def test_save_03(self):
-        doc = {'_id': 'kk', 'foo':'bar'}
-        self.db.save(doc)
-        self.db.save(doc)
+        doc1 = {'_id': 'kk2', 'foo':'bar'}
+        doc2 = self.db.save(doc1)
+        doc3 = self.db.save(doc2)
 
     def test_save_04(self):
-        doc = {'_id': 'kk', 'foo':'bar'}
-        self.db.save(doc)
+        doc = self.db.save({'_id': 'kk3', 'foo':'bar'})
 
         del doc["_rev"]
         with self.assertRaises(Conflict):
-            self.db.save(doc)
+            doc2 = self.db.save(doc)
 
     def test_len(self):
-        doc = {'_id': 'kk', 'foo':'bar'}
-        self.db.save(doc)
-        self.assertEqual(len(self.db), 1)
+        doc1 = {'_id': 'kk4', 'foo':'bar'}
+        doc2 = self.db.save(doc1)
+        self.assertTrue(len(self.db) > 0)
 
     def test_delete_01(self):
-        doc = {'_id': 'kk', 'foo':'bar'}
-        self.db.save(doc)
-        self.db.delete("kk")
+        doc = self.db.save({'_id': 'kk5', 'foo':'bar'})
+        self.db.delete("kk5")
         self.assertEqual(len(self.db), 0)
 
     def test_delete_02(self):
         with self.assertRaises(NotFound):
-            self.db.delete("kk")
+            self.db.delete("kk6")
 
     def test_save_bulk_01(self):
-        ok, results = self.db.save_bulk([
+        docs = self.db.save_bulk([
             {"name":"Andrey"},
             {"name":"Pepe"},
             {"name": "Alex"},
         ])
 
-        self.assertTrue(ok)
-        self.assertEqual(len(results), 3)
+        self.assertEqual(len(docs), 3)
 
     def test_save_bulk_02(self):
-        ok, results = self.db.save_bulk([
-            {"_id": "kk1", "name":"Andrey"},
-            {"_id": "kk2", "name":"Pepe"},
-            {"_id": "kk3", "name": "Alex"},
+        docs = self.db.save_bulk([
+            {"_id": "kk6", "name": "Andrey"},
+            {"_id": "kk7", "name": "Pepe"},
+            {"_id": "kk8", "name": "Alex"},
         ])
 
-        ok, results = self.db.save_bulk([
-            {"_id": "kk1", "name":"Andrey"},
-            {"_id": "kk2", "name":"Pepe"},
-            {"_id": "kk3", "name": "Alex"},
+        with self.assertRaises(Conflict):
+            docs = self.db.save_bulk([
+                {"_id": "kk6", "name": "Andrey"},
+                {"_id": "kk7", "name": "Pepe"},
+                {"_id": "kk8", "name": "Alex"},
+            ])
+
+    def test_delete_bulk(self):
+        docs = self.db.save_bulk([
+            {"_id": "kj1", "name": "Andrey"},
+            {"_id": "kj2", "name": "Pepe"},
+            {"_id": "kj3", "name": "Alex"},
         ])
 
-        self.assertFalse(ok)
+        results = self.db.delete_bulk(docs)
         self.assertEqual(len(results), 3)
 
     def test_cleanup(self):
@@ -141,25 +149,30 @@ class DatabaseTests(unittest.TestCase):
 
 
 class DatabaseQueryTests(unittest.TestCase):
-    def setUp(self):
-        self.s = couchdb.Server(SERVER_URL)
-        self.db = self.s.create('testing')
-        ok, _ = self.db.save_bulk([
+    @classmethod
+    def setUpClass(cls):
+        cls.s = couchdb.Server(SERVER_URL)
+        try:
+            cls.db = cls.s.create('testing3')
+        except Conflict:
+            cls.s.delete("testing3")
+            cls.db = cls.s.create('testing3')
+
+        docs = cls.db.save_bulk([
             {"_id": "kk1", "name":"Andrey"},
             {"_id": "kk2", "name":"Pepe"},
             {"_id": "kk3", "name": "Alex"},
         ])
 
-        self.assertTrue(ok)
-
-    def tearDown(self):
-        self.s.delete("testing")
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.delete("testing3")
 
     def test_contains(self):
         self.assertIn("kk1", self.db)
 
     def test_query_01(self):
-        result = list(self.db.all())
+        result = [x for x in self.db.all() if not x['_id'].startswith("_")]
         self.assertEqual(len(result), 3)
 
     def test_query_02(self):
@@ -205,7 +218,7 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
 
     def test_query(self):
-        doc = {
+        doc1 = {
             "_id": "_design/testing",
             "views": {
                 "names": {
@@ -215,7 +228,7 @@ class DatabaseQueryTests(unittest.TestCase):
             }
         }
 
-        self.db.save(doc)
+        doc2 = self.db.save(doc1)
 
         result = self.db.query("testing/names", group='true', keys=['Andrey'])
         result = list(result)
@@ -223,7 +236,7 @@ class DatabaseQueryTests(unittest.TestCase):
 
     def test_compact_view_01(self):
         doc = {
-            "_id": "_design/testing",
+            "_id": "_design/testing2",
             "views": {
                 "names": {
                     "map": "function(doc) { emit(doc.name, 1); }",
@@ -233,24 +246,29 @@ class DatabaseQueryTests(unittest.TestCase):
         }
 
         self.db.save(doc)
-        self.db.compact_view("testing")
+        self.db.compact_view("testing2")
 
     def test_compact_view_02(self):
         with self.assertRaises(NotFound):
             self.db.compact_view("fooo")
 
-class DatabaseTests3(unittest.TestCase):
-    def setUp(self):
-        self.s = couchdb.Server(SERVER_URL)
-        self.db = self.s.create('testing')
-        ok, _ = self.db.save_bulk([
+class DatabaseAttachmentsTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.s = couchdb.Server(SERVER_URL)
+        try:
+            cls.db = cls.s.create('testing4')
+        except Conflict:
+            cls.s.delete("testing4")
+            cls.db = cls.s.create('testing4')
+
+        docs = cls.db.save_bulk([
             {"_id": "kk1", "name":"Andrey"},
         ])
 
-        self.assertTrue(ok)
-
-    def tearDown(self):
-        self.s.delete("testing")
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.delete("testing4")
 
     def test_attachments_01(self):
         doc = self.db.get("kk1")

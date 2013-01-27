@@ -149,47 +149,58 @@ class Database(object):
         r = self.resource.get()
         return utils.as_json(r)['doc_count']
 
-    def delete(self, id):
+    def delete(self, doc_or_id):
         """
         Delete document by id.
 
-        :param id: document id
+        :param doc_or_id: document or id
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document not exists
-
-        :returns: document (dict)
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if delete with wrong revision.
         """
-        resource = self.resource(*_id_to_path(id))
+
+        _id = None
+        if isinstance(doc_or_id, dict):
+            if "_id" not in doc_or_id:
+                raise ValueError("Invalid document, missing _id attr")
+            _id = doc_or_id['_id']
+        else:
+            _id = doc_or_id
+
+        resource = self.resource(*_id_to_path(_id))
 
         r = resource.head()
         if r.status_code == 404:
             raise NotFound("doc not found")
 
         r = resource.delete(params={"rev": r.headers["etag"].strip('"')})
-        return r.status_code < 206
+        if r.status_code > 206:
+            d = utils.as_json(r)
+            raise Conflict(d['reason'])
 
-    def delete_bulk(self, docs):
+    def delete_bulk(self, docs, transaction=True):
         """
         Delete a bulk of documents.
 
         :param docs: list of docs
-
-        :returns: (ok, results)
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a delete is not success
+        :returns: raw results from server
         """
-        for doc in docs:
-                if "_deleted" not in doc:
-                        doc["_deleted"] = True
 
-        data = utils.to_json({"docs" : docs}).encode("utf-8")
-        r = self.resource.post("_bulk_docs", data=data)
+        _docs = copy.copy(docs)
+        for doc in _docs:
+            if "_deleted" not in doc:
+                doc["_deleted"] = True
 
-        ok = True
+        data = utils.to_json({"docs" : _docs}).encode("utf-8")
+        params = {"all_or_nothing": "true" if transaction else "false"}
+        r = self.resource.post("_bulk_docs", data=data, params=params)
+
         results = utils.as_json(r)
-        for result, doc in zip(results, docs):
+        for result, doc in zip(results, _docs):
             if "error" in result:
-                ok = False
-                break
+                raise Conflict("one or more docs are not saved")
 
-        return ok, results
+        return results
 
     def get(self, id, params={}):
         """
@@ -210,19 +221,24 @@ class Database(object):
 
         :param doc: document
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
+        :returns: doc
         """
-        if "_id" not in doc:
-            doc['_id'] = uuid.uuid4().hex
 
-        data = utils.to_json(doc).encode('utf-8')
-        r = self.resource(doc['_id']).put(data=data)
+        _doc = copy.copy(doc)
+        if "_id" not in _doc:
+            _doc['_id'] = uuid.uuid4().hex
+
+        data = utils.to_json(_doc).encode('utf-8')
+        r = self.resource(_doc['_id']).put(data=data)
         d = utils.as_json(r)
 
         if r.status_code == 409:
             raise Conflict(d['reason'])
 
         if "rev" in d and d["rev"] is not None:
-            doc["_rev"] = d["rev"]
+            _doc["_rev"] = d["rev"]
+
+        return _doc
 
     def save_bulk(self, docs, transaction=True):
         """
@@ -230,25 +246,27 @@ class Database(object):
 
         :param docs: list of docs
         :param transaction: if ``True``, couchdb do a insert in transaction model
-        :returns: (ok, results)
+        :returns: docs
         """
 
-        for doc in docs:
+        _docs = copy.copy(docs)
+        for doc in _docs:
             if "_id" not in doc:
                 doc["_id"] = uuid.uuid4().hex
 
-        data = utils.to_json({"docs": docs}).encode("utf-8")
+        data = utils.to_json({"docs": _docs}).encode("utf-8")
         params = {"all_or_nothing": "true" if transaction else "false"}
         r = self.resource.post("_bulk_docs", data=data, params=params)
 
-        ok = True
         results = utils.as_json(r)
-        for result, doc in zip(results, docs):
+        for result, doc in zip(results, _docs):
             if "error" in result:
-                ok = False
-                break
+                raise Conflict("one or more docs are not saved")
 
-        return ok, results
+            if "rev" in result:
+                doc['_rev'] = result['rev']
+
+        return _docs
 
     def all(self, wrapper=None, **kwargs):
         """
@@ -334,15 +352,25 @@ class Database(object):
     def delete_attachment(self, doc, filename):
         """
         Delete attachment by filename from document.
+
+        :param doc: document dict
+        :param filename: name of attachment.
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
+        :returns: doc
         """
-        resource = self.resource(doc['_id'])
-        r = resource.delete(filename, params={'rev': doc['_rev']})
+
+        _doc = copy.copy(doc)
+        resource = self.resource(_doc['_id'])
+        r = resource.delete(filename, params={'rev': _doc['_rev']})
         if r.status_code == 404:
             raise NotFound("filename {0} not found".format(filename))
 
-        data = utils.as_json(r)
-        doc['_rev'] = data['rev']
-        return data['ok']
+        d = utils.as_json(r)
+        if r.status_code < 206:
+            _doc['_rev'] = d['rev']
+            return _doc
+
+        raise Conflict(d['reason'])
 
     def get_attachment(self, doc, filename):
         """
@@ -362,9 +390,11 @@ class Database(object):
         :param filename: the name of the attachment file; if omitted, this
                          function tries to get the filename from the file-like
                          object passed as the `content` argument value
-
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
         :raises: ValueError
+        :returns: doc
         """
+        _doc = copy.copy(doc)
 
         if filename is None:
             if hasattr(content, 'name'):
@@ -377,14 +407,17 @@ class Database(object):
                 filter(None, mimetypes.guess_type(filename)))
 
         headers = {"Content-Type": content_type}
-        resource = self.resource(doc['_id'])
+        resource = self.resource(_doc['_id'])
 
         r = resource.put(filename, data=content,
-            params={'rev': doc['_rev']}, headers=headers)
+            params={'rev': _doc['_rev']}, headers=headers)
 
-        data = utils.as_json(r)
-        doc['_rev'] = data['rev']
-        return data['ok']
+        d = utils.as_json(r)
+        if r.status_code < 206:
+            _doc['_rev'] = d['rev']
+            return _doc
+
+        raise Conflict(d['reason'])
 
     def _query(self, resource, data=None, params={}, headers={}, wrapper=None):
         if data is None:
