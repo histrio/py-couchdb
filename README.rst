@@ -35,3 +35,14 @@ To install py-couchdb, simply:
 .. code-block:: console
 
     pip install pycouchdb
+
+Test
+^^^^
+To test py-couchdb, simply run:
+
+.. code-block:: console
+
+   python tests.py
+ 
+This command assumes a couchdb account with username "admin" and
+password "admin". Otherwise change "SERVER_URL" in tests.py.

@@ -324,7 +324,9 @@ class Database(object):
 
     def compact(self):
         """
-        Send compact message to server.
+        Send compact message to server. Compacting write-heavy databases
+        should be avoided, otherwise the process may not catch up with
+        the writes. Read load has no effect.
         """
         r = self.resource("_compact").post()
         return utils.as_json(r)
