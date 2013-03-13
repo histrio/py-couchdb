@@ -116,4 +116,3 @@ def _encode_view_options(options):
             value = json.encode(value)
         retval[name] = value
     return retval
-
