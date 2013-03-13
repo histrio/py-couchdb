@@ -45,4 +45,4 @@ To test py-couchdb, simply run:
    python tests.py
  
 This command assumes a couchdb account with username "admin" and
-password "admin".
+password "admin". Otherwise change "SERVER_URL" in tests.py.
