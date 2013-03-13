@@ -149,6 +149,15 @@ class Database(object):
         r = self.resource.get()
         return utils.as_json(r)['doc_count']
 
+    def compact(self):
+        """
+        Compact database. This method has no effect if a compact
+        operation is already running.
+        """
+        r = self.resource.get()
+        if not r['compact_running']:
+            return
+        
     def delete(self, doc_or_id):
         """
         Delete document by id.
