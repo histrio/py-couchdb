@@ -447,6 +447,8 @@ class Database(object):
         if wrapper is None:
             wrapper = lambda row: row
 
+        r.raise_for_status()
+
         for row in utils.as_json(r)["rows"]:
             yield wrapper(row)
 
