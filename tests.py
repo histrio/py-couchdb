@@ -66,6 +66,14 @@ class ServerTests(unittest.TestCase):
         self.s.delete("testing1")
         self.s.delete("testing2")
 
+    def test_replicate_create(self):
+        self.s.create('testing1')
+        self.assertNotIn("testing2", self.s)
+        self.s.replicate("testing1", "testing2", create_target=True)
+        self.assertIn("testing2", self.s)
+        self.s.delete("testing1")
+        self.s.delete("testing2")
+
 
 class DatabaseTests(unittest.TestCase):
     @classmethod
