@@ -54,6 +54,26 @@ class ServerTests(unittest.TestCase):
         data = self.s.config()
         self.assertIn("view_compaction", data)
 
+    def test_replicate(self):
+        db1 = self.s.create("testing1")
+        db2 = self.s.create("testing2")
+        db1.save({'_id': '1', 'title': 'hello'})
+        self.assertEqual(len(db1), 1)
+        self.assertEqual(len(db2), 0)
+        self.s.replicate("testing1", "testing2")
+        self.assertEqual(len(db1), 1)
+        self.assertEqual(len(db2), 1)
+        self.s.delete("testing1")
+        self.s.delete("testing2")
+
+    def test_replicate_create(self):
+        self.s.create('testing1')
+        self.assertNotIn("testing2", self.s)
+        self.s.replicate("testing1", "testing2", create_target=True)
+        self.assertIn("testing2", self.s)
+        self.s.delete("testing1")
+        self.s.delete("testing2")
+
 
 class DatabaseTests(unittest.TestCase):
     @classmethod

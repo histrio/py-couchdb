@@ -125,6 +125,18 @@ class Server(object):
         data = utils.as_json(r)
         raise Conflict(data["reason"])
 
+    def replicate(self, source, target, **kwargs):
+        """
+        Replicate the source database to the target one.
+
+        :param source: URL to the source database
+        :param target: URL to the target database
+        """
+        data = copy.copy(kwargs)
+        data.update({'source': source, 'target': target})
+        data = utils.to_json(data).encode('utf-8')
+        return self.resource.post('_replicate', data=data)
+
 
 def _id_to_path(id):
     if id[:1] == "_":
