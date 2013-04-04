@@ -1,3 +1,8 @@
+Version 1.3
+-----------
+
+- Added replication methods thanks to Bruno Bord (@brunobord)
+
 Version 1.2
 -----------
 
