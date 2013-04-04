@@ -129,6 +129,8 @@ class Server(object):
         """
         Replicate the source database to the target one.
 
+        .. versionadded:: 1.3
+
         :param source: URL to the source database
         :param target: URL to the target database
         """
