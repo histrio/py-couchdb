@@ -199,6 +199,9 @@ class DatabaseQueryTests(unittest.TestCase):
         result = list(self.db.all(keys=['kk1','kk2']))
         self.assertEqual(len(result), 2)
 
+    def test_query_startkey_endkey(self):
+        result = list(self.db.all(startkey='kk1',endkey='kk2'))
+        self.assertEqual(len(result), 2)
     def test_revisions_01(self):
         doc = self.db.get("kk1")
 
