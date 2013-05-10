@@ -13,7 +13,7 @@ else:
 
 import json
 
-
+json_encoder = json.JSONEncoder()
 def _extract_credentials(url):
     """Extract authentication (user name and password) credentials from the
     given URL.
@@ -113,6 +113,6 @@ def _encode_view_options(options):
     for name, value in options.items():
         if name in ('key', 'startkey', 'endkey') \
                 or not isinstance(value, str):
-            value = json.encode(value)
+            value = json_encoder.encode(value)
         retval[name] = value
     return retval
