@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import requests
-from .exceptions import AuthenticationFailed
+from .exceptions import AuthenticationFailed, GenericError
 from . import utils
 
 
@@ -53,8 +53,12 @@ class Resource(object):
             url = self.base_url
 
         headers.setdefault('Accept', 'application/json')
-        return self.session.request(method, url, data=data, params=params,
-                                                headers=headers, **kwargs)
+        
+        resp = self.session.request(method, url, data=data, params=params, headers=headers, **kwargs)
+        result = utils.as_json(resp)
+        if ((resp.status_code == 400) and result['error']):
+          raise GenericError(result)
+        return (resp, result)
 
     def get(self, path=None, **kwargs):
         return self.request("GET", path, **kwargs)

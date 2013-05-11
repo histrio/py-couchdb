@@ -4,6 +4,9 @@
 class Conflict(Exception):
     pass
 
+class GenericError(Exception):
+    pass
+
 class NotFound(Exception):
     pass
 

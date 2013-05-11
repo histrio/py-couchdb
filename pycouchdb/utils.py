@@ -90,7 +90,10 @@ def urljoin(base, *path):
 
 def as_json(response):
     if "application/json" in response.headers['content-type']:
+      if (response.text != ""):
         return json.loads(response.text)
+      else:
+        return response.text
     raise RuntimeError()
 
 def to_json(doc):

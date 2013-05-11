@@ -9,7 +9,7 @@ import mimetypes
 
 from . import utils
 from .resource import Resource
-from .exceptions import Conflict, NotFound
+from .exceptions import Conflict, NotFound, GenericError
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
