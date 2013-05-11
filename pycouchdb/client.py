@@ -472,7 +472,42 @@ class Database(object):
 
         raise Conflict(d['reason'])
 
-    def _query(self, resource, data=None, params={}, headers={}, wrapper=None):
+    def one(self, name, flat=None, wrapper=None, **kwargs):
+        """
+        Execute a design document view query and returns a firts
+        result.
+
+        :param name: name of the view (eg: docidname/viewname).
+        :param wrapper: wrap result into a specific class.
+        :param flat: get a specific field from a object instead of a complete object.
+
+        .. versionadded: 1.4
+
+        :returns: object or None
+        """
+
+        params = copy.copy(kwargs)
+        params["limit"] = 1
+
+        path = utils._path_from_name(name, '_view')
+        data = None
+
+        if "keys" in params:
+            data = {"keys": params.pop('keys')}
+
+        if data:
+            data = utils.to_json(data).encode("utf-8")
+
+        params = utils._encode_view_options(params)
+        result = list(self._query(self.resource(*path), wrapper=wrapper,
+                           flat=flat, params=params, data=data))
+
+        return result[0] if len(result) > 0 else None
+
+
+    def _query(self, resource, data=None, params={}, headers={},
+               flat=None, wrapper=None):
+
         if data is None:
             r = resource.get(params=params, headers=headers)
         else:
@@ -481,19 +516,29 @@ class Database(object):
         if wrapper is None:
             wrapper = lambda row: row
 
+        if flat is not None:
+            wrapper = lambda row: row[flat]
+
         r.raise_for_status()
 
         for row in utils.as_json(r)["rows"]:
             yield wrapper(row)
 
-    def temporary_query(self, map_func, reduce_func=None,
-                        language='javascript', wrapper=None, **kwargs):
+    def temporary_query(self, map_func, reduce_func=None, language='javascript',
+                        wrapper=None, as_list=False, **kwargs):
         """
         Execute a temporary view.
 
         :param map_func: unicode string with a map function definition.
         :param reduce_func: unicode string with a reduce function definition.
         :param language: language used for define above functions.
+        :param wrapper: wrap result into a specific class.
+        :param as_list: return a list of results instead of a default lazy generator.
+        :param flat: get a specific field from a object instead of a complete object.
+
+        .. versionchanged: 1.4
+           Add as_list parameter.
+           Add flat parameter.
 
         :returns: generator object
         """
@@ -509,14 +554,26 @@ class Database(object):
         params = utils._encode_view_options(params)
         data = utils.to_json(data).encode("utf-8")
 
-        return self._query(self.resource("_temp_view"), params=params,
-                                            data=data, wrapper=wrapper)
+        result = self._query(self.resource("_temp_view"), params=params,
+                             data=data, wrapper=wrapper)
+        if as_list:
+            return list(result)
+        return result
 
-    def query(self, name, wrapper=None, **kwargs):
+
+    def query(self, name, wrapper=None, flat=None, as_list=False, **kwargs):
         """
         Execute a design document view query.
 
-        :param name: name of the view (eg: docidname/viewname)
+        :param name: name of the view (eg: docidname/viewname).
+        :param wrapper: wrap result into a specific class.
+        :param as_list: return a list of results instead of a default lazy generator.
+        :param flat: get a specific field from a object instead of a complete object.
+
+        .. versionadded: 1.4
+           Add as_list parameter.
+           Add flat parameter.
+
         :returns: generator object
         """
         params = copy.copy(kwargs)
@@ -530,4 +587,9 @@ class Database(object):
             data = utils.to_json(data).encode("utf-8")
 
         params = utils._encode_view_options(params)
-        return self._query(self.resource(*path), wrapper=wrapper, params=params, data=data)
+        result =  self._query(self.resource(*path), wrapper=wrapper,
+                              flat=flat, params=params, data=data)
+
+        if as_list:
+            return list(result)
+        return result
