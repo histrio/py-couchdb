@@ -250,14 +250,13 @@ class Database(object):
             _doc['_id'] = uuid.uuid4().hex
 
         data = utils.to_json(_doc).encode('utf-8')
-        r = self.resource(_doc['_id']).put(data=data)
-        d = utils.as_json(r)
+        (resp, result) = self.resource(_doc['_id']).put(data=data)
 
-        if r.status_code == 409:
-            raise Conflict(d['reason'])
+        if resp.status_code == 409:
+            raise Conflict(result['reason'])
 
-        if "rev" in d and d["rev"] is not None:
-            _doc["_rev"] = d["rev"]
+        if "rev" in result and result["rev"] is not None:
+            _doc["_rev"] = result["rev"]
 
         return _doc
 
