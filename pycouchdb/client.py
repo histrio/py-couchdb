@@ -296,9 +296,17 @@ class Database(object):
 
         return _docs
 
-    def all(self, wrapper=None, **kwargs):
+    def all(self, wrapper=None, flat=None, as_list=False, **kwargs):
         """
         Execute a builtin view for get all documents.
+
+        :param wrapper: wrap result into a specific class.
+        :param as_list: return a list of results instead of a default lazy generator.
+        :param flat: get a specific field from a object instead of a complete object.
+
+        .. versionadded: 1.4
+           Add as_list parameter.
+           Add flat parameter.
 
         :returns: generator object
         """
@@ -322,8 +330,17 @@ class Database(object):
         if wrapper is None:
             wrapper = lambda doc: doc
 
-        for row in data["rows"]:
-            yield wrapper(row['doc'])
+        if flat is not None:
+            wrapper = lambda doc: doc[flat]
+
+        def _iterate():
+            for row in data["rows"]:
+                yield wrapper(row['doc'])
+
+        if as_list:
+            return list(_iterate())
+        return _iterate()
+
 
     def cleanup(self):
         """
