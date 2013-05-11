@@ -20,12 +20,15 @@ class Server(object):
 
     :param base_url: a full url to couchdb (can contain auth data).
     :param full_commit: If ``False``, couchdb not commits all data on a request is finished.
-    :param authmethod: specify a authentication method. By default use a "session" method but also exists
-            "basic" (that uses http basic auth).
+    :param authmethod: specify a authentication method. By default "basic" method is used but also exists
+            "session" (that requires some server configuration changes).
+
+    .. versionchanged: 1.4
+       Set basic auth method as default instead of session method.
+
     """
 
-    def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True, authmethod="session"):
-        self.base_url = base_url
+    def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True, authmethod="basic"):
         self.base_url, credentials = utils._extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit, credentials=credentials, authmethod=authmethod)
 
