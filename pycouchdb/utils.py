@@ -14,8 +14,11 @@ else:
 import json
 
 json_encoder = json.JSONEncoder()
+
+
 def _extract_credentials(url):
-    """Extract authentication (user name and password) credentials from the
+    """
+    Extract authentication (user name and password) credentials from the
     given URL.
 
     >>> extract_credentials('http://localhost:5984/_config/')
@@ -45,7 +48,8 @@ def quote(data, safe=b''):
 
 
 def urljoin(base, *path):
-    """Assemble a uri based on a base, any number of path segments, and query
+    """
+    Assemble a uri based on a base, any number of path segments, and query
     string parameters.
 
     >>> urljoin('http://example.org', '_all_dbs')
