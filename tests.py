@@ -2,6 +2,7 @@
 
 import unittest
 import tempfile
+import types
 import pycouchdb as couchdb
 
 from pycouchdb.exceptions import Conflict, NotFound
@@ -184,6 +185,19 @@ class DatabaseQueryTests(unittest.TestCase):
             {"_id": "kk3", "name": "Alex"},
         ])
 
+
+        querydoc = {
+            "_id": "_design/testing",
+            "views": {
+                "names": {
+                    "map": "function(doc) { emit(doc.name, 1); }",
+                    "reduce": "function(keys, values) { return  sum(values); }",
+                }
+            }
+        }
+
+        cls.db.save(querydoc)
+
     @classmethod
     def tearDownClass(cls):
         cls.s.delete("testing3")
@@ -191,17 +205,30 @@ class DatabaseQueryTests(unittest.TestCase):
     def test_contains(self):
         self.assertIn("kk1", self.db)
 
-    def test_query_01(self):
+    def test_all_01(self):
         result = [x for x in self.db.all() if not x['_id'].startswith("_")]
         self.assertEqual(len(result), 3)
 
-    def test_query_02(self):
+    def test_all_02(self):
         result = list(self.db.all(keys=['kk1','kk2']))
         self.assertEqual(len(result), 2)
 
-    def test_query_startkey_endkey(self):
+    def test_all_03(self):
+        result = list(self.db.all(keys=['kk1','kk2'], flat="_id"))
+        self.assertEqual(result, ['kk1', 'kk2'])
+
+    def test_all_04(self):
+        result = self.db.all(keys=['kk1','kk2'], flat="_id")
+        self.assertIsInstance(result, types.GeneratorType)
+
+    def test_all_05(self):
+        result = self.db.all(keys=['kk1','kk2'], flat="_id", as_list=True)
+        self.assertIsInstance(result, list)
+
+    def test_all_startkey_endkey(self):
         result = list(self.db.all(startkey='kk1',endkey='kk2'))
         self.assertEqual(len(result), 2)
+
     def test_revisions_01(self):
         doc = self.db.get("kk1")
 
@@ -240,22 +267,29 @@ class DatabaseQueryTests(unittest.TestCase):
         result = list(result)
         self.assertEqual(len(result), 1)
 
-    def test_query(self):
-        doc1 = {
-            "_id": "_design/testing",
-            "views": {
-                "names": {
-                    "map": "function(doc) { emit(doc.name, 1); }",
-                    "reduce": "function(keys, values) { return  sum(values); }",
-                }
-            }
-        }
-
-        doc2 = self.db.save(doc1)
-
-        result = self.db.query("testing/names", group='true', keys=['Andrey'])
-        result = list(result)
+    def test_query_01(self):
+        result = self.db.query("testing/names", group='true', keys=['Andrey'], as_list=True)
         self.assertEqual(len(result), 1)
+
+    def test_query_02(self):
+        result = self.db.query("testing/names", as_list=False)
+        self.assertIsInstance(result, types.GeneratorType)
+
+    def test_query_03(self):
+        result = self.db.query("testing/names", as_list=True, flat="value")
+        self.assertEqual(result, [3])
+
+    def test_query_04(self):
+        result = self.db.one("testing/names", flat="value")
+        self.assertEqual(result, 3)
+
+    def test_query_05(self):
+        result = self.db.one("testing/names", flat="value", group='true', keys=['KK'])
+        self.assertEqual(result, None)
+
+    def test_query_06(self):
+        result = self.db.one("testing/names", flat="value", group='true', keys=['Andrey'])
+        self.assertEqual(result, 1)
 
     def test_compact_view_01(self):
         doc = {
