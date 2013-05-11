@@ -11,8 +11,9 @@ class Resource(object):
 
         if not session:
             self.session = requests.session()
-            self.session.headers.setdefault('Accept', 'application/json')
-            self.session.headers.setdefault('Content-Type', 'application/json')
+
+            self.session.headers.update({"accept": "application/json",
+                                         "content-type": "application/json"})
             self._authenticate(credentials, authmethod)
 
             if not full_commit:
@@ -32,8 +33,10 @@ class Resource(object):
             r = self.session.post(post_url, data=data)
             if r.status_code != 200:
                 raise AuthenticationFailed()
+
         elif method == "basic":
             self.session.auth = credentials
+
         else:
             raise RuntimeError("Invalid authentication method")
 
