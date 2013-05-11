@@ -1,3 +1,13 @@
+Version 1.4
+-----------
+
+- Fixed invalid url parsing on use session (thanks to KodjoSuprem)
+- Fixed invalid encode method call (thanks to Kristoffer Berdal)
+- Switch to basic auth method as default auth method.
+- Add new method "one" for more clean way to obtain a first value
+    for a query a view (thanks to Kristoffer Berdal for the initial idea)
+- Add flat and as_list parameters to query, one and all methods.
+
 Version 1.3
 -----------
 
