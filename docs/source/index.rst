@@ -10,7 +10,7 @@ Release v\ |version|.
 
 py-couchdb is an :ref:`BSD Licensed`, modern pure python CouchDB client.
 
-Currently there are several libraries in python to connect to couchdb. **Why one more?** It's very simple. 
+Currently there are several libraries in python to connect to couchdb. **Why one more?** It's very simple.
 All seems not be maintained, all libraries used standard Python libraries for http requests, and are not compatible with python3.
 
 Advantages of py-couchdb
@@ -22,6 +22,9 @@ Advantages of py-couchdb
 
 .. _requests: http://docs.python-requests.org/en/latest/
 
+.. note::
+   requests 1.2 seems buggy with python3 and I strongly recommend use request 1.1 if you use python3
+
 
 Example:
 
@@ -31,6 +34,7 @@ Example:
     >>> server = pycouchdb.Server("http://admin:admin@localhost:5984/")
     >>> server.info()['version']
     '1.2.1'
+
 
 
 User guide
