@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import requests
-from .exceptions import AuthenticationFailed, GenericError
+import exceptions
 from . import utils
 
 
@@ -44,6 +44,20 @@ class Resource(object):
         base_url = utils.urljoin(self.base_url, *path)
         return self.__class__(base_url, session=self.session)
 
+    def check_result(self, resp, result):
+      if ('error' in result):
+        print "[DEBUG] pycouchdb resp: %s error: %s" % (resp, result)
+        error  = result.get('error', None)
+        reason = result.get('reason', None)
+        if error == u'not_found':
+          raise exceptions.NotFound(reason)
+        elif error == u'conflict':
+          raise exceptions.Conflict(reason)
+        elif error == u'bad_request':
+          raise exceptions.BadRequest(reason)
+        else:
+          # TODO: Make an error class for all possible errors.
+          raise exceptions.GenericError(result)
     def request(self, method, path, params=None, data=None, headers={}, **kwargs):
         if path:
             if not isinstance(path, (list, tuple)):
@@ -56,12 +70,12 @@ class Resource(object):
         
         resp = self.session.request(method, url, data=data, params=params, headers=headers, **kwargs)
         result = utils.as_json(resp)
-        #print "[DEBUG] pycouchdb, resp: %s, result: %s" % (resp, result)
-        for res in result:
-          if ('error' in res):
-            #print "[DEBUG] pycouchdb error: %s reason: %s" % (res['error'], res['reason'])
-            # TODO: Make an error class for all possible errors.
-            raise GenericError(res)
+        print "[DEBUG] pycouchdb, resp: %s, result: %s" % (resp, result)
+        if type(result) is list:
+          for res in result:
+            self.check_result(resp, res)
+        else:
+          self.check_result(resp, result)
         return (resp, result)
 
     def get(self, path=None, **kwargs):

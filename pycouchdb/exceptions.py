@@ -10,5 +10,7 @@ class GenericError(Exception):
 class NotFound(Exception):
     pass
 
+class BadRequest(Exception):
+    pass
 class AuthenticationFailed(Exception):
     pass
