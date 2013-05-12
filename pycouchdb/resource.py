@@ -56,8 +56,12 @@ class Resource(object):
         
         resp = self.session.request(method, url, data=data, params=params, headers=headers, **kwargs)
         result = utils.as_json(resp)
-        if ((resp.status_code == 400) and result['error']):
-          raise GenericError(result)
+        #print "[DEBUG] pycouchdb, resp: %s, result: %s" % (resp, result)
+        for res in result:
+          if ('error' in res):
+            #print "[DEBUG] pycouchdb error: %s reason: %s" % (res['error'], res['reason'])
+            # TODO: Make an error class for all possible errors.
+            raise GenericError(res)
         return (resp, result)
 
     def get(self, path=None, **kwargs):
