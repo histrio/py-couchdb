@@ -28,9 +28,11 @@ class Server(object):
 
     """
 
-    def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True, authmethod="basic"):
+    def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True,
+                 authmethod="basic", verify=False):
+
         self.base_url, credentials = utils._extract_credentials(base_url)
-        self.resource = Resource(self.base_url, full_commit, credentials=credentials, authmethod=authmethod)
+        self.resource = Resource(self.base_url, full_commit, credentials=credentials, authmethod=authmethod, verify=verify)
 
     def __contains__(self, name):
         r = self.resource.head(name)

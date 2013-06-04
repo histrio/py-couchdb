@@ -6,8 +6,11 @@ from . import utils
 
 
 class Resource(object):
-    def __init__(self, base_url, full_commit=True, session=None, credentials=None, authmethod="session"):
+    def __init__(self, base_url, full_commit=True, session=None,
+                 credentials=None, authmethod="session", verify=False):
+
         self.base_url = base_url
+        self.verify = verify
 
         if not session:
             self.session = requests.session()
@@ -54,7 +57,8 @@ class Resource(object):
 
         headers.setdefault('Accept', 'application/json')
         return self.session.request(method, url, data=data, params=params,
-                                                headers=headers, **kwargs)
+                                    headers=headers, verify=self.verify,
+                                    **kwargs)
 
     def get(self, path=None, **kwargs):
         return self.request("GET", path, **kwargs)
@@ -70,4 +74,3 @@ class Resource(object):
 
     def head(self, path=None, **kwargs):
         return self.request("HEAD", path, **kwargs)
-
