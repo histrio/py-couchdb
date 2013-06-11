@@ -427,11 +427,20 @@ class Database(object):
             raise NotFound("filename {0} not found".format(filename))
 
         d = utils.as_json(r)
-        if r.status_code < 206:
-            _doc['_rev'] = d['rev']
-            return _doc
+        if r.status_code > 205:
+            raise Conflict(d['reason'])
 
-        raise Conflict(d['reason'])
+        _doc['_rev'] = d['rev']
+
+        try:
+            del _doc['_attachments'][filename]
+
+            if not _doc['_attachments']:
+                del _doc['_attachments']
+        except KeyError:
+            pass
+
+        return _doc
 
     def get_attachment(self, doc, filename):
         """

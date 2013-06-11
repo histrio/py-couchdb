@@ -342,7 +342,9 @@ class DatabaseAttachmentsTest(unittest.TestCase):
         data = self.db.get_attachment(doc, "sample.txt")
         self.assertEqual(data, b"Hello World")
 
-        self.db.delete_attachment(doc, "sample.txt")
+        doc = self.db.delete_attachment(doc, "sample.txt")
+        self.assertNotIn("_attachments", doc)
+
         doc = self.db.get("kk1")
         self.assertNotIn("_attachments", doc)
 
