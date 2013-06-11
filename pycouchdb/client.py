@@ -18,13 +18,19 @@ class Server(object):
     """
     Class that represents a couchdb connection.
 
+    :param verify: setup ssl verifycation.
     :param base_url: a full url to couchdb (can contain auth data).
-    :param full_commit: If ``False``, couchdb not commits all data on a request is finished.
-    :param authmethod: specify a authentication method. By default "basic" method is used but also exists
-            "session" (that requires some server configuration changes).
+    :param full_commit: If ``False``, couchdb not commits all data on a
+                        request is finished.
+    :param authmethod: specify a authentication method. By default "basic"
+                       method is used but also exists "session" (that requires
+                       some server configuration changes).
 
     .. versionchanged: 1.4
        Set basic auth method as default instead of session method.
+
+    .. versionchanged: 1.5
+        Add verify parameter for setup ssl verifycaton
 
     """
 
@@ -32,7 +38,10 @@ class Server(object):
                  authmethod="basic", verify=False):
 
         self.base_url, credentials = utils._extract_credentials(base_url)
-        self.resource = Resource(self.base_url, full_commit, credentials=credentials, authmethod=authmethod, verify=verify)
+        self.resource = Resource(self.base_url, full_commit,
+                                 credentials=credentials,
+                                 authmethod=authmethod,
+                                 verify=verify)
 
     def __contains__(self, name):
         r = self.resource.head(name)
