@@ -13,6 +13,31 @@ from .exceptions import Conflict, NotFound
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
+class _StreamResponse(object):
+    """
+    Proxy object for python-requests stream response.
+
+    See more on: http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
+    """
+    def __init__(self, response):
+        self._response = response
+
+    def iter_content(self, chunk_size=1, decode_unicode=False):
+        return self._response.iter_content(chunk_size=chunk_size,
+                                           decode_unicode=decode_unicode)
+
+    def iter_lines(self, chunk_size=512, decode_unicode=None):
+        return self._response.iter_lines(chunk_size=chunk_size,
+                                         decode_unicode=decode_unicode)
+
+    @property
+    def raw(self):
+        return self._response.raw
+
+    @property
+    def url(self):
+        return self._response.url
+
 
 class Server(object):
     """
@@ -442,13 +467,25 @@ class Database(object):
 
         return _doc
 
-    def get_attachment(self, doc, filename):
+    def get_attachment(self, doc, filename, stream=False):
         """
         Get attachment by filename from document.
 
-        :returns: binary data
+        :param doc: document dict
+        :param filename: attachment file name.
+        :param stream: setup streaming output (default: False)
+
+        .. versionchanged: 1.5
+            Add stream parameter for obtain very large attachments
+            without load all file to the memory.
+
+        :returns: binary data or
         """
+
         r = self.resource(doc['_id']).get(filename, stream=False)
+        if stream:
+            return _StreamResponse(r)
+
         return r.content
 
     def put_attachment(self, doc, content, filename=None, content_type=None):

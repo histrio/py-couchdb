@@ -360,5 +360,26 @@ class DatabaseAttachmentsTest(unittest.TestCase):
         doc = self.db.get("kk1")
         self.assertIn("_attachments", doc)
 
+    def test_attachments_03_stream(self):
+        doc = self.db.get("kk1")
+
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(b"Hello")
+            f.seek(0)
+
+            doc = self.db.put_attachment(doc, f, "sample.txt")
+
+        response = self.db.get_attachment(doc, "sample.txt", stream=True)
+        stream = response.iter_content()
+
+        self.assertEqual(next(stream), b"H")
+        self.assertEqual(next(stream), b"e")
+        self.assertEqual(next(stream), b"l")
+        self.assertEqual(next(stream), b"l")
+        self.assertEqual(next(stream), b"o")
+
+        with self.assertRaises(StopIteration):
+            next(stream)
+
 if __name__ == '__main__':
     unittest.main()
