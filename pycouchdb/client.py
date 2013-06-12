@@ -482,7 +482,7 @@ class Database(object):
         :returns: binary data or
         """
 
-        r = self.resource(doc['_id']).get(filename, stream=False)
+        r = self.resource(doc['_id']).get(filename, stream=stream)
         if stream:
             return _StreamResponse(r)
 
