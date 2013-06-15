@@ -12,6 +12,11 @@ Version 1.5
   load all content in memory.
 - Add a simple way to subscribe to couchdb changes stream.
 
+Thanks to:
+
+- Kristoffer Berdal (@flexd) for hard work on error management improvement.
+- @Dedalus2000 for test and report a lot of issues and some ideas.
+
 
 Version 1.4
 -----------
