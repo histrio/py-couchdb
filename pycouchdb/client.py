@@ -173,7 +173,8 @@ class Server(object):
         """
         data = copy.copy(kwargs)
         data.update({'source': source, 'target': target})
-        data = utils.to_json(data).encode('utf-8')
+        data = utils.force_bytes(utils.to_json(data))
+
         (resp, result) = self.resource.post('_replicate', data=data)
         return result
 
@@ -245,7 +246,7 @@ class Database(object):
             if "_deleted" not in doc:
                 doc["_deleted"] = True
 
-        data = utils.to_json({"docs" : _docs}).encode("utf-8")
+        data = utils.force_bytes(utils.to_json({"docs" : _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
         (resp, results) = self.resource.post("_bulk_docs", data=data, params=params)
 
@@ -286,7 +287,7 @@ class Database(object):
         if "_id" not in _doc:
             _doc['_id'] = uuid.uuid4().hex
 
-        data = utils.to_json(_doc).encode('utf-8')
+        data = utils.force_bytes(utils.to_json(_doc))
         (resp, result) = self.resource(_doc['_id']).put(data=data)
 
         if resp.status_code == 409:
@@ -317,7 +318,7 @@ class Database(object):
             if "_id" not in doc:
                 doc["_id"] = uuid.uuid4().hex
 
-        data = utils.to_json({"docs": _docs}).encode("utf-8")
+        data = utils.force_bytes(utils.to_json({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
 
         (resp, results) = self.resource.post("_bulk_docs", data=data,
@@ -350,7 +351,7 @@ class Database(object):
 
         if "keys" in params:
             data = {"keys": params.pop("keys")}
-            data = utils.to_json(data).encode('utf-8')
+            data = utils.force_bytes(utils.to_json(data))
 
         params = utils._encode_view_options(params)
         if data:
@@ -541,7 +542,7 @@ class Database(object):
             data = {"keys": params.pop('keys')}
 
         if data:
-            data = utils.to_json(data).encode("utf-8")
+            data = utils.force_bytes(utils.to_json(data))
 
         params = utils._encode_view_options(params)
         result = list(self._query(self.resource(*path), wrapper=wrapper,
@@ -597,7 +598,7 @@ class Database(object):
             data["reduce"] = reduce_func
 
         params = utils._encode_view_options(params)
-        data = utils.to_json(data).encode("utf-8")
+        data = utils.force_bytes(utils.to_json(data))
 
         result = self._query(self.resource("_temp_view"), params=params,
                              data=data, wrapper=wrapper)
@@ -629,7 +630,7 @@ class Database(object):
             data = {"keys": params.pop('keys')}
 
         if data:
-            data = utils.to_json(data).encode("utf-8")
+            data = utils.force_bytes(utils.to_json(data))
 
         params = utils._encode_view_options(params)
         result =  self._query(self.resource(*path), wrapper=wrapper,

@@ -1,17 +1,26 @@
 # -*- coding: utf-8 -*-
 
+import json
+import functools
 import sys
 
-if sys.version_info[:2] > (2, 7):
+
+if sys.version_info[0] == 3:
     from urllib.parse import quote as _quote
     from urllib.parse import unquote as _unquote
     from urllib.parse import urlunsplit, urlsplit
+
+    string_type = str
+    bytes_type = bytes
+
 else:
     from urllib import quote as _quote
     from urllib import unquote as _unquote
     from urlparse import urlunsplit, urlsplit
 
-import json
+    string_type = unicode
+    bytes_type = str
+
 
 json_encoder = json.JSONEncoder()
 
@@ -97,10 +106,8 @@ def as_json(response):
 
     return None
 
-
 def to_json(doc):
     return json.dumps(doc)
-
 
 def _path_from_name(name, type):
     """
@@ -112,16 +119,48 @@ def _path_from_name(name, type):
     design, name = name.split('/', 1)
     return ['_design', design, type, name]
 
-
 def _encode_view_options(options):
     """
     Encode any items in the options dict that are sent as a JSON string to a
     view/list function.
     """
     retval = {}
+
     for name, value in options.items():
-        if name in ('key', 'startkey', 'endkey') \
-                or not isinstance(value, str):
+        if name in ('key', 'startkey', 'endkey'):
             value = json_encoder.encode(value)
         retval[name] = value
     return retval
+
+def as_list(function):
+    """
+    Convert to list a generator function.
+    """
+    @functools.wraps(function)
+    def _decorator(*args, **kwargs):
+        return list(function(*args, **kwargs))
+    return _decorator
+
+def as_dict(function):
+    """
+    Convert to list a generator function.
+    """
+    @functools.wraps(function)
+    def _decorator(*args, **kwargs):
+        return dict(list(function(*args, **kwargs)))
+    return _decorator
+
+def force_bytes(data, encoding="utf-8"):
+    if isinstance(data, string_type):
+        data = data.encode(encoding)
+    return data
+
+def force_text(data, encoding="utf-8"):
+    if isinstance(data, bytes_type):
+        data = data.decode(encoding)
+    return data
+
+def int_to_bool(data):
+    if data == 0:
+        return True
+    return False

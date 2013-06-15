@@ -33,7 +33,7 @@ class Resource(object):
 
         if method == "session":
             data = {"name": credentials[0], "password": credentials[1]}
-            data = utils.to_json(data).encode('utf-8')
+            data = utils.force_bytes(utils.to_json(data))
 
             post_url = utils.urljoin(self.base_url, "_session")
             r = self.session.post(post_url, data=data)
