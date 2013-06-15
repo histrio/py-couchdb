@@ -1,3 +1,18 @@
+=========
+Changelog
+=========
+
+Version 1.5
+-----------
+
+- Improved error management.
+- Improved exception hierarchy.
+- Fix a lot of inconsistents on method calls.
+- Add a simple way to obtain attachment as stream instead of
+  load all content in memory.
+- Add a simple way to subscribe to couchdb changes stream.
+
+
 Version 1.4
 -----------
 
