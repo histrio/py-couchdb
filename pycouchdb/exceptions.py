@@ -1,17 +1,29 @@
 # -*- coding: utf-8 -*-
 
 
-class Conflict(Exception):
+class Error(Exception):
     pass
 
-class GenericError(Exception):
+class UnexpectedError(Error):
     pass
 
-class NotFound(Exception):
+class FeedReaderExited(Error):
     pass
 
-class BadRequest(Exception):
+class ApiError(Error):
     pass
 
-class AuthenticationFailed(Exception):
+class GenericError(ApiError):
+    pass
+
+class Conflict(ApiError):
+    pass
+
+class NotFound(ApiError):
+    pass
+
+class BadRequest(ApiError):
+    pass
+
+class AuthenticationFailed(ApiError):
     pass
