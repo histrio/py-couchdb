@@ -364,6 +364,11 @@ class DatabaseAttachmentsTest(unittest.TestCase):
         doc = self.db.get("kk1")
         self.assertIn("_attachments", doc)
 
+    def test_get_not_existent_attachment(self):
+        doc = self.db.get("kk1")
+        with self.assertRaises(NotFound):
+            self.db.get_attachment(doc, "kk.txt")
+
     def test_attachments_03_stream(self):
         doc = self.db.get("kk1")
 
