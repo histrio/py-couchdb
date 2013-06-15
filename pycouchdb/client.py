@@ -9,7 +9,7 @@ import mimetypes
 
 from . import utils
 from .resource import Resource
-from .exceptions import Conflict, NotFound
+from .exceptions import Conflict, NotFound, GenericError
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
@@ -69,16 +69,20 @@ class Server(object):
                                  verify=verify)
 
     def __contains__(self, name):
-        r = self.resource.head(name)
-        return r.status_code == 200
+        try:
+            self.resource.head(name)
+        except NotFound:
+            return False
+        else:
+            return True
 
     def __iter__(self):
-        r = self.resource.get('_all_dbs')
-        return iter(utils.as_json(r))
+        (r, result) = self.resource.get('_all_dbs')
+        return iter(result)
 
     def __len__(self):
-        rs = self.resource.get('_all_dbs')
-        return len(utils.as_json(rs))
+        (r, result) = self.resource.get('_all_dbs')
+        return len(result)
 
     def info(self):
         """
@@ -87,8 +91,8 @@ class Server(object):
         :returns: dict with all data that couchdb returns.
         :rtype: dict
         """
-        r = self.resource.get()
-        return utils.as_json(r)
+        (r, result) = self.resource.get()
+        return result
 
     def delete(self, name):
         """
@@ -98,9 +102,7 @@ class Server(object):
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a database does not exists
         """
 
-        r = self.resource.delete(name)
-        if r.status_code == 404:
-            raise NotFound("database {0} not found".format(name))
+        self.resource.delete(name)
 
     def database(self, name):
         """
@@ -111,7 +113,7 @@ class Server(object):
 
         :returns: a :py:class:`~pycouchdb.client.Database` instance
         """
-        r = self.resource.head(name)
+        (r, result) = self.resource.head(name)
         if r.status_code == 404:
             raise NotFound("Database '{0}' does not exists".format(name))
 
@@ -122,15 +124,15 @@ class Server(object):
         """
         Get a current config data.
         """
-        r = self.resource.get("_config")
-        return utils.as_json(r)
+        (resp, result) = self.resource.get("_config")
+        return result
 
     def version(self):
         """
         Get the current version of a couchdb server.
         """
-        r = self.resource.get()
-        return utils.as_json(r)["version"]
+        (resp, result) = self.resource.get()
+        return result["version"]
 
     def stats(self, name=None):
         """
@@ -141,13 +143,12 @@ class Server(object):
         """
 
         if not name:
-            r = self.resource.get("_stats")
-            return utils.as_json(r)
+            (resp, result) = self.resource.get("_stats")
+            return result
 
         resource = self.resource("_stats", "couchdb")
-        r = resource.get(name)
-        data = utils.as_json(r)
-        return data['couchdb'][name]
+        (r, result) = resource.get(name)
+        return result['couchdb'][name]
 
     def create(self, name):
         """
@@ -157,12 +158,9 @@ class Server(object):
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a database already exists
         :returns: a :py:class:`~pycouchdb.client.Database` instance
         """
-        r = self.resource.put(name)
-        if r.status_code in (200, 201):
+        (resp, result) = self.resource.put(name)
+        if resp.status_code in (200, 201):
             return self.database(name)
-
-        data = utils.as_json(r)
-        raise Conflict(data["reason"])
 
     def replicate(self, source, target, **kwargs):
         """
@@ -176,7 +174,8 @@ class Server(object):
         data = copy.copy(kwargs)
         data.update({'source': source, 'target': target})
         data = utils.to_json(data).encode('utf-8')
-        return self.resource.post('_replicate', data=data)
+        (resp, result) = self.resource.post('_replicate', data=data)
+        return result
 
 
 def _id_to_path(id):
@@ -195,12 +194,12 @@ class Database(object):
         self.name = name
 
     def __contains__(self, id):
-        r = self.resource.head(_id_to_path(id))
-        return r.status_code < 206
+        (resp, result) = self.resource.head(_id_to_path(id))
+        return resp.status_code < 206
 
     def __len__(self):
-        r = self.resource.get()
-        return utils.as_json(r)['doc_count']
+        (resp, result) = self.resource.get()
+        return result['doc_count']
 
     def delete(self, doc_or_id):
         """
@@ -210,8 +209,10 @@ class Database(object):
             Accept document or id.
 
         :param doc_or_id: document or id
-        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document not exists
-        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if delete with wrong revision.
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document
+                 not exists
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if delete with
+                 wrong revision.
         """
 
         _id = None
@@ -224,14 +225,8 @@ class Database(object):
 
         resource = self.resource(*_id_to_path(_id))
 
-        r = resource.head()
-        if r.status_code == 404:
-            raise NotFound("doc not found")
-
-        r = resource.delete(params={"rev": r.headers["etag"].strip('"')})
-        if r.status_code > 206:
-            d = utils.as_json(r)
-            raise Conflict(d['reason'])
+        (r, result) = resource.head()
+        (r, result) = resource.delete(params={"rev": r.headers["etag"].strip('"')})
 
     def delete_bulk(self, docs, transaction=True):
         """
@@ -240,7 +235,8 @@ class Database(object):
         .. versionadded:: 1.2
 
         :param docs: list of docs
-        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a delete is not success
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a delete
+                 is not success
         :returns: raw results from server
         """
 
@@ -251,12 +247,11 @@ class Database(object):
 
         data = utils.to_json({"docs" : _docs}).encode("utf-8")
         params = {"all_or_nothing": "true" if transaction else "false"}
-        r = self.resource.post("_bulk_docs", data=data, params=params)
+        (resp, results) = self.resource.post("_bulk_docs", data=data, params=params)
 
-        results = utils.as_json(r)
         for result, doc in zip(results, _docs):
-            if "error" in result:
-                raise Conflict("one or more docs are not saved")
+          if "error" in result:
+            raise Conflict("one or more docs are not saved")
 
         return results
 
@@ -265,13 +260,14 @@ class Database(object):
         Get a document by id.
 
         :param id: document id
-        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document not exists
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document
+                 not exists
 
         :returns: document (dict)
         """
 
-        r = self.resource(*_id_to_path(id)).get(params=params)
-        return utils.as_json(r)
+        (resp, result) = self.resource(*_id_to_path(id)).get(params=params)
+        return result
 
     def save(self, doc):
         """
@@ -281,7 +277,8 @@ class Database(object):
             Now returns a new document instead of modify the original.
 
         :param doc: document
-        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong
+                 revision.
         :returns: doc
         """
 
@@ -290,14 +287,13 @@ class Database(object):
             _doc['_id'] = uuid.uuid4().hex
 
         data = utils.to_json(_doc).encode('utf-8')
-        r = self.resource(_doc['_id']).put(data=data)
-        d = utils.as_json(r)
+        (resp, result) = self.resource(_doc['_id']).put(data=data)
 
-        if r.status_code == 409:
-            raise Conflict(d['reason'])
+        if resp.status_code == 409:
+            raise Conflict(result['reason'])
 
-        if "rev" in d and d["rev"] is not None:
-            _doc["_rev"] = d["rev"]
+        if "rev" in result and result["rev"] is not None:
+            _doc["_rev"] = result["rev"]
 
         return _doc
 
@@ -309,24 +305,25 @@ class Database(object):
             Now returns a new document list instead of modify the original.
 
         :param docs: list of docs
-        :param transaction: if ``True``, couchdb do a insert in transaction model
+        :param transaction: if ``True``, couchdb do a insert in transaction
+                            model.
         :returns: docs
         """
 
         _docs = copy.copy(docs)
+
+        # Insert _id field if it not exists
         for doc in _docs:
             if "_id" not in doc:
                 doc["_id"] = uuid.uuid4().hex
 
         data = utils.to_json({"docs": _docs}).encode("utf-8")
         params = {"all_or_nothing": "true" if transaction else "false"}
-        r = self.resource.post("_bulk_docs", data=data, params=params)
 
-        results = utils.as_json(r)
+        (resp, results) = self.resource.post("_bulk_docs", data=data,
+                                             params=params)
+
         for result, doc in zip(results, _docs):
-            if "error" in result:
-                raise Conflict("one or more docs are not saved")
-
             if "rev" in result:
                 doc['_rev'] = result['rev']
 
@@ -357,11 +354,9 @@ class Database(object):
 
         params = utils._encode_view_options(params)
         if data:
-            r = self.resource.post("_all_docs", params=params, data=data)
+            (resp, result) = self.resource.post("_all_docs", params=params, data=data)
         else:
-            r = self.resource.get("_all_docs", params=params)
-
-        data = utils.as_json(r)
+            (resp, result) = self.resource.get("_all_docs", params=params)
 
         if wrapper is None:
             wrapper = lambda doc: doc
@@ -370,7 +365,7 @@ class Database(object):
             wrapper = lambda doc: doc[flat]
 
         def _iterate():
-            for row in data["rows"]:
+            for row in result["rows"]:
                 yield wrapper(row['doc'])
 
         if as_list:
@@ -382,15 +377,15 @@ class Database(object):
         """
         Execute a cleanup operation.
         """
-        r = self.resource('_view_cleanup').post()
-        return utils.as_json(r)
+        (r, result) = self.resource('_view_cleanup').post()
+        return result
 
     def commit(self):
         """
         Send commit message to server.
         """
-        r = self.resource.post('_ensure_full_commit')
-        return utils.as_json(r)
+        (resp, result) = self.resource.post('_ensure_full_commit')
+        return result
 
     def compact(self):
         """
@@ -398,8 +393,8 @@ class Database(object):
         should be avoided, otherwise the process may not catch up with
         the writes. Read load has no effect.
         """
-        r = self.resource("_compact").post()
-        return utils.as_json(r)
+        (r, result) = self.resource("_compact").post()
+        return result
 
     def compact_view(self, ddoc):
         """
@@ -407,10 +402,8 @@ class Database(object):
 
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
         """
-        r = self.resource("_compact", ddoc).post()
-        if r.status_code == 404:
-            raise NotFound("view {0} not found".format(ddoc))
-        return utils.as_json(r)
+        (r, result) = self.resource("_compact", ddoc).post()
+        return result
 
     def revisions(self, id, params={}):
         """
@@ -423,12 +416,11 @@ class Database(object):
         """
 
         resource = self.resource(id)
-        r = resource.get(params={'revs_info': 'true'})
-        if r.status_code == 404:
+        (resp, result) = resource.get(params={'revs_info': 'true'})
+        if resp.status_code == 404:
             raise NotFound("docid {0} not found".format(id))
 
-        data = utils.as_json(r)
-        for rev in data['_revs_info']:
+        for rev in result['_revs_info']:
             if rev['status'] == 'available':
                 yield self.get(id, params=params)
 
@@ -447,16 +439,15 @@ class Database(object):
 
         _doc = copy.copy(doc)
         resource = self.resource(_doc['_id'])
-        r = resource.delete(filename, params={'rev': _doc['_rev']})
-        if r.status_code == 404:
+
+        (resp, result) = resource.delete(filename, params={'rev': _doc['_rev']})
+        if resp.status_code == 404:
             raise NotFound("filename {0} not found".format(filename))
 
-        d = utils.as_json(r)
-        if r.status_code > 205:
-            raise Conflict(d['reason'])
+        if resp.status_code > 205:
+            raise Conflict(result['reason'])
 
-        _doc['_rev'] = d['rev']
-
+        _doc['_rev'] = result['rev']
         try:
             del _doc['_attachments'][filename]
 
@@ -482,7 +473,7 @@ class Database(object):
         :returns: binary data or
         """
 
-        r = self.resource(doc['_id']).get(filename, stream=stream)
+        r, result = self.resource(doc['_id']).get(filename, stream=stream)
         if stream:
             return _StreamResponse(r)
 
@@ -519,15 +510,14 @@ class Database(object):
         headers = {"Content-Type": content_type}
         resource = self.resource(_doc['_id'])
 
-        r = resource.put(filename, data=content,
+        (resp, result) = resource.put(filename, data=content,
             params={'rev': _doc['_rev']}, headers=headers)
 
-        d = utils.as_json(r)
-        if r.status_code < 206:
-            _doc['_rev'] = d['rev']
+        if resp.status_code < 206:
+            _doc['_rev'] = result['rev']
             return _doc
 
-        raise Conflict(d['reason'])
+        raise Conflict(result['reason'])
 
     def one(self, name, flat=None, wrapper=None, **kwargs):
         """
@@ -566,9 +556,9 @@ class Database(object):
                flat=None, wrapper=None):
 
         if data is None:
-            r = resource.get(params=params, headers=headers)
+            (resp, result) = resource.get(params=params, headers=headers)
         else:
-            r = resource.post(data=data, params=params, headers=headers)
+            (resp, result) = resource.post(data=data, params=params, headers=headers)
 
         if wrapper is None:
             wrapper = lambda row: row
@@ -576,9 +566,9 @@ class Database(object):
         if flat is not None:
             wrapper = lambda row: row[flat]
 
-        r.raise_for_status()
+        resp.raise_for_status()
 
-        for row in utils.as_json(r)["rows"]:
+        for row in result["rows"]:
             yield wrapper(row)
 
     def temporary_query(self, map_func, reduce_func=None, language='javascript',

@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
+
 import requests
-from .exceptions import AuthenticationFailed
+
 from . import utils
+from . import exceptions
 
 
 class Resource(object):
@@ -47,7 +50,30 @@ class Resource(object):
         base_url = utils.urljoin(self.base_url, *path)
         return self.__class__(base_url, session=self.session)
 
-    def request(self, method, path, params=None, data=None, headers={}, **kwargs):
+    def check_result(self, response, result):
+        try:
+            error = result.get('error', None)
+            reason = result.get('reason', None)
+        except AttributeError:
+            error = None
+            reason = ''
+
+        # This is here because couchdb can return http 201
+        # but containing a list of conflict errors
+        if error == 'conflict' or error == "file_exists":
+            raise exceptions.Conflict(reason or "Conflict")
+
+        if response.status_code > 205:
+            if response.status_code == 404 or error == 'not_found':
+                raise exceptions.NotFound(reason or 'Not found')
+            elif error == 'bad_request':
+                raise exceptions.BadRequest(reason or "Bad request")
+            raise exceptions.GenericError(result)
+
+    def request(self, method, path, params=None, data=None,
+                headers={}, **kwargs):
+        headers.setdefault('Accept', 'application/json')
+
         if path:
             if not isinstance(path, (list, tuple)):
                 path = [path]
@@ -55,10 +81,20 @@ class Resource(object):
         else:
             url = self.base_url
 
-        headers.setdefault('Accept', 'application/json')
-        return self.session.request(method, url, data=data, params=params,
-                                    headers=headers, verify=self.verify,
-                                    **kwargs)
+        response = self.session.request(method, url,
+                                        data=data, params=params,
+                                        headers=headers, **kwargs)
+        result = utils.as_json(response)
+        if result is None:
+            return (response, result)
+
+        if isinstance(result, list):
+            for res in result:
+                self.check_result(response, res)
+        else:
+            self.check_result(response, result)
+
+        return (response, result)
 
     def get(self, path=None, **kwargs):
         return self.request("GET", path, **kwargs)

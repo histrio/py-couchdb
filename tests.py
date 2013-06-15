@@ -117,12 +117,11 @@ class DatabaseTests(unittest.TestCase):
         doc2 = self.db.save(doc1)
         self.assertTrue(len(self.db) > 0)
 
-    def test_delete_01(self):
+    def test_delete(self):
         doc = self.db.save({'_id': 'kk5', 'foo':'bar'})
         self.db.delete("kk5")
         self.assertEqual(len(self.db), 0)
 
-    def test_delete_02(self):
         with self.assertRaises(NotFound):
             self.db.delete("kk6")
 
