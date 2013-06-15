@@ -10,11 +10,11 @@ installed. If you do not, head over to the :ref:`Installation <install>` section
 Connecto to a server
 --------------------
 
-Connect to a couchdb server is very simple. Begin by importing ``pycouchdb`` module and instance 
+Connect to a couchdb server is very simple. Begin by importing ``pycouchdb`` module and instance
 a server class:
 
 .. code-block:: python
-    
+
     >>> import pycouchdb
     >>> server = pycouchdb.Server()
 
@@ -26,15 +26,15 @@ By default, py-couchdb connects to a ``http://localhost:5984/`` but if your couc
 authentication,  you can pass ``http://username:password@localhost:5984/`` to server constructor:
 
 .. code-block:: python
-    
+
     >>> server = pycouchdb.Server("http://username:password@localhost:5984/")
 
 py-couchdb have two methods for authentication: with session or basic auth. By default, "session" method
 is used but if you like, can specify the method on create a server instance:
 
 .. code-block:: python
-    
-    >>> server = pycouchdb.Server("http://username:password@localhost:5984/", 
+
+    >>> server = pycouchdb.Server("http://username:password@localhost:5984/",
                                                           authmethod="basic")
 
 Create, obtain and delete a database
@@ -43,7 +43,7 @@ Create, obtain and delete a database
 CouchDB can contains multiple databases. For access to one, this is a simple example:
 
 .. code-block:: python
-    
+
     >>> db = server.database("foo")
     >>> db
     <pycouchdb.client.Database object at 0x7fd4ae835dd0>
@@ -52,7 +52,7 @@ CouchDB can contains multiple databases. For access to one, this is a simple exa
 Can create one new db:
 
 .. code-block:: python
-    
+
     >>> server.create("foo2")
     <pycouchdb.client.Database object at 0x7f9c46059310>
 
@@ -86,7 +86,7 @@ The simplest way for get a document is using its ``id``.
     >>> db = server.database("foo")
     >>> doc = db.get("b1536a237d8d14f3bfde54b41b036d8a")
     >>> doc
-    {'_rev': '1-d62e11770282e4fcc5f6311dae6c80ee', 'name': 'Bar', 
+    {'_rev': '1-d62e11770282e4fcc5f6311dae6c80ee', 'name': 'Bar',
                         '_id': 'b1536a237d8d14f3bfde54b41b036d8a'}
 
 
@@ -96,14 +96,14 @@ You can create a own document:
 
     >>> doc = db.save({"name": "FOO"})
     >>> doc
-    {'_rev': '1-6a1be826ddbd67649df8aa1e0bf12da1', 
+    {'_rev': '1-6a1be826ddbd67649df8aa1e0bf12da1',
     '_id': 'ef9e608db6434dd39ab3dc4cf35d22b7', 'name': 'FOO'}
 
 
 Delete a document:
 
 .. code-block:: python
-    
+
     >>> db.delete("ef9e608db6434dd39ab3dc4cf35d22b7")
     >>> "ef9e608db6434dd39ab3dc4cf35d22b7" not in db
     True
@@ -128,15 +128,15 @@ And this is a way for make a query using a predefined views:
 
 .. code-block:: python
 
-    >>> _doc = { 
+    >>> _doc = {
     ...    "_id": "_design/testing",
     ...    "views": {
     ...        "names": {
     ...            "map": "function(doc) { emit(doc.name, 1); }",
     ...            "reduce": "function(k, v) { return  sum(v); }",
-    ...        }   
-    ...    }   
-    ...} 
+    ...        }
+    ...    }
+    ...}
     >>> doc = db.save(_doc)
     >>> list(db.query("testing/names", group='true'))
     [{'value': 1, 'key': 'Fooo'}]
