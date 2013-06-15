@@ -6,8 +6,9 @@ class BaseFeedReader(object):
     Base interface class for changes feed reader.
     """
 
-    def __init__(self, db):
+    def __call__(self, db):
         self.db = db
+        return self
 
     def on_message(self, message):
         """
@@ -34,9 +35,9 @@ class SimpleFeedReader(BaseFeedReader):
     a valid feed reader interface.
     """
 
-    def __init__(self, db, callback):
-        super(SimpleFeedReader, self).__init__(db)
+    def __call__(self, db, callback):
         self.callback = callback
+        return super(SimpleFeedReader, self).__call__(db)
 
     def on_message(self, message):
         self.callback(message, db=self.db)

@@ -658,7 +658,7 @@ class Database(object):
         if isinstance(feed_reader, feedreader.BaseFeedReader):
             reader = feed_reader(self)
         else:
-            reader = feedreader.SimpleFeedReader(self, feed_reader)
+            reader = feedreader.SimpleFeedReader()(self, feed_reader)
 
         # Possible options: "continuous", "longpoll"
         kwargs.setdefault("feed", "continuous")
