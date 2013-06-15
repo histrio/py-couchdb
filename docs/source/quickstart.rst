@@ -140,3 +140,44 @@ And this is a way for make a query using a predefined views:
     >>> doc = db.save(_doc)
     >>> list(db.query("testing/names", group='true'))
     [{'value': 1, 'key': 'Fooo'}]
+
+
+Subscribe to a changes stream feed
+----------------------------------
+
+CouchDB exposes a fantastic stream api for push change notifications,
+and with **pycouchdb** you can subscribe to these changes in a very
+simple way:
+
+.. code-block:: python
+
+    >>> def feed_reader(message, db):
+    ...     print(message)
+    ...
+    >>> db.changes_feed(feed_reader)
+
+``changes_feed`` blocks until a stream is closed or :py:class:`~pycouchdb.exceptions.FeedReaderExited`
+is raised inside of reader function.
+
+Also, you can make reader as class. This have some advantage, because it exposes often useful
+close callback.
+
+Example:
+
+.. code-block:: python
+
+    >>> from pycouchdb.feedreader import BaseFeedReader
+    >>> from pycouchdb.exceptions import FeedReaderExited
+    >>>
+    >>> class MyReader(BaseFeedReader):
+    ...     def on_message(self, message):
+    ...         # self.db is a current Database instance
+    ...         # process message
+    ...         raise FeedReaderExited()
+    ...
+    ...     def on_close(self):
+    ...         # This is executed after a exception
+    ...         # is raised on on_message method
+    ...         print("Feed reader end")
+    ...
+    >>> db.changes_feed(MyReader())
