@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function, unicode_literals
+
 import unittest
 import tempfile
 import types
 import pycouchdb as couchdb
 
 from pycouchdb.exceptions import Conflict, NotFound
+from pycouchdb import exceptions as exp
 
 SERVER_URL = 'http://admin:admin@localhost:5984/'
 
@@ -166,6 +169,50 @@ class DatabaseTests(unittest.TestCase):
 
     def test_compact(self):
         self.assertTrue(self.db.compact())
+
+
+class DatabaseChangesTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
+        cls.db = cls.s.create('testing_changes')
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.s.delete("testing_changes")
+
+    def create_changes(self):
+        doc1 = {"_id": "kk1", "counter": 1}
+        doc2 = {"_id": "kk2", "counter": 1}
+        doc1 = self.db.save(doc1)
+        doc2 = self.db.save(doc2)
+
+        return doc1, doc2
+
+    def test_changes_list(self):
+        doc1, doc2 = self.create_changes()
+        last_seq, changes = self.db.changes_list()
+        self.assertEqual(len(changes), 2)
+
+        _, changes = self.db.changes_list(since=last_seq-1)
+        self.assertEqual(len(changes), 1)
+
+        self.db.delete(doc1)
+        self.db.delete(doc2)
+
+    def test_changes_feed_01(self):
+        doc1, doc2 = self.create_changes()
+        messages = []
+
+        def reader(message, db):
+            messages.append(message)
+            raise exp.FeedReaderExited()
+
+        self.db.changes_feed(reader)
+        self.assertEqual(len(messages), 1)
+
+        self.db.delete(doc1)
+        self.db.delete(doc2)
 
 
 class DatabaseQueryTests(unittest.TestCase):

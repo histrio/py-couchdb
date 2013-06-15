@@ -6,12 +6,22 @@ import json
 import uuid
 import copy
 import mimetypes
+import warnings
 
 from . import utils
+from . import feedreader
+from . import exceptions as exp
 from .resource import Resource
-from .exceptions import Conflict, NotFound, GenericError
+
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
+
+
+def _id_to_path(id):
+    if id[:1] == "_":
+        return id.split("/", 1)
+    return [id]
+
 
 class _StreamResponse(object):
     """
@@ -71,7 +81,7 @@ class Server(object):
     def __contains__(self, name):
         try:
             self.resource.head(name)
-        except NotFound:
+        except exp.NotFound:
             return False
         else:
             return True
@@ -115,7 +125,7 @@ class Server(object):
         """
         (r, result) = self.resource.head(name)
         if r.status_code == 404:
-            raise NotFound("Database '{0}' does not exists".format(name))
+            raise exp.NotFound("Database '{0}' does not exists".format(name))
 
         db = Database(self.resource(name), name)
         return db
@@ -177,12 +187,6 @@ class Server(object):
 
         (resp, result) = self.resource.post('_replicate', data=data)
         return result
-
-
-def _id_to_path(id):
-    if id[:1] == "_":
-        return id.split("/", 1)
-    return [id]
 
 
 class Database(object):
@@ -252,13 +256,18 @@ class Database(object):
 
         for result, doc in zip(results, _docs):
           if "error" in result:
-            raise Conflict("one or more docs are not saved")
+            raise exp.Conflict("one or more docs are not saved")
 
         return results
 
-    def get(self, id, params={}):
+    def get(self, id, params={}, **kwargs):
         """
         Get a document by id.
+
+        .. versionadded: 1.5
+            Now the prefered method to pass params is via **kwargs
+            instead of params argument. **params** argument is now
+            deprecated and will be deleted in future versions.
 
         :param id: document id
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document
@@ -266,6 +275,12 @@ class Database(object):
 
         :returns: document (dict)
         """
+
+        if params:
+            warnings.warn("params parameter is now deprecated in favor to"
+                          "**kwargs usage.", DeprecationWarning)
+
+        params.update(kwargs)
 
         (resp, result) = self.resource(*_id_to_path(id)).get(params=params)
         return result
@@ -291,7 +306,7 @@ class Database(object):
         (resp, result) = self.resource(_doc['_id']).put(data=data)
 
         if resp.status_code == 409:
-            raise Conflict(result['reason'])
+            raise exp.Conflict(result['reason'])
 
         if "rev" in result and result["rev"] is not None:
             _doc["_rev"] = result["rev"]
@@ -373,7 +388,6 @@ class Database(object):
             return list(_iterate())
         return _iterate()
 
-
     def cleanup(self):
         """
         Execute a cleanup operation.
@@ -419,7 +433,7 @@ class Database(object):
         resource = self.resource(id)
         (resp, result) = resource.get(params={'revs_info': 'true'})
         if resp.status_code == 404:
-            raise NotFound("docid {0} not found".format(id))
+            raise exp.NotFound("docid {0} not found".format(id))
 
         for rev in result['_revs_info']:
             if rev['status'] == 'available':
@@ -443,10 +457,10 @@ class Database(object):
 
         (resp, result) = resource.delete(filename, params={'rev': _doc['_rev']})
         if resp.status_code == 404:
-            raise NotFound("filename {0} not found".format(filename))
+            raise exp.NotFound("filename {0} not found".format(filename))
 
         if resp.status_code > 205:
-            raise Conflict(result['reason'])
+            raise exp.Conflict(result['reason'])
 
         _doc['_rev'] = result['rev']
         try:
@@ -516,7 +530,7 @@ class Database(object):
         if resp.status_code < 206:
             return self.get(doc["_id"])
 
-        raise Conflict(result['reason'])
+        raise exp.Conflict(result['reason'])
 
     def one(self, name, flat=None, wrapper=None, **kwargs):
         """
@@ -565,8 +579,6 @@ class Database(object):
         if flat is not None:
             wrapper = lambda row: row[flat]
 
-        resp.raise_for_status()
-
         for row in result["rows"]:
             yield wrapper(row)
 
@@ -606,7 +618,6 @@ class Database(object):
             return list(result)
         return result
 
-
     def query(self, name, wrapper=None, flat=None, as_list=False, **kwargs):
         """
         Execute a design document view query.
@@ -639,3 +650,27 @@ class Database(object):
         if as_list:
             return list(result)
         return result
+
+    def changes_feed(self, feed_reader, **kwargs):
+        if not callable(feed_reader):
+            raise exp.UnexpectedError("feed_reader must be callable or class")
+
+        if isinstance(feed_reader, feedreader.BaseFeedReader):
+            reader = feed_reader(self)
+        else:
+            reader = feedreader.SimpleFeedReader(self, feed_reader)
+
+        # Possible options: "continuous", "longpoll"
+        kwargs.setdefault("feed", "continuous")
+        kwargs.setdefault("since", 1)
+
+        (resp, result) = self.resource("_changes").get(params=kwargs, stream=True)
+        try:
+            for line in resp.iter_lines(chunk_size=1):
+                reader.on_message(json.loads(utils.force_text(line)))
+        except exp.FeedReaderExited as e:
+            reader.on_close()
+
+    def changes_list(self, **kwargs):
+        (resp, result) = self.resource("_changes").get(params=kwargs)
+        return result['last_seq'], result['results']
