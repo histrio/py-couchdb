@@ -652,6 +652,18 @@ class Database(object):
         return result
 
     def changes_feed(self, feed_reader, **kwargs):
+        """
+        Subscribe to changes feed of couchdb.
+
+        Note: this method is blocking.
+
+
+        :param feed_reader: callable or :py:class:`~BaseFeedReader`
+                            instance
+
+        .. versionadded: 1.5
+        """
+
         if not callable(feed_reader):
             raise exp.UnexpectedError("feed_reader must be callable or class")
 
@@ -672,5 +684,11 @@ class Database(object):
             reader.on_close()
 
     def changes_list(self, **kwargs):
+        """
+        Obtain a list of changes from couchdb.
+
+        .. versionadded: 1.5
+        """
+
         (resp, result) = self.resource("_changes").get(params=kwargs)
         return result['last_seq'], result['results']
