@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-import functools
 import sys
 
 
@@ -30,11 +29,12 @@ def _extract_credentials(url):
     Extract authentication (user name and password) credentials from the
     given URL.
 
-    >>> extract_credentials('http://localhost:5984/_config/')
+    >>> _extract_credentials('http://localhost:5984/_config/')
     ('http://localhost:5984/_config/', None)
-    >>> extract_credentials('http://joe:secret@localhost:5984/_config/')
+    >>> _extract_credentials('http://joe:secret@localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe', 'secret'))
-    >>> extract_credentials('http://joe%40example.com:secret@localhost:5984/_config/')
+    >>> _extract_credentials('http://joe%40example.com:secret@'
+    ...                      'localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe@example.com', 'secret'))
     """
     parts = urlsplit(url)
@@ -53,7 +53,6 @@ def quote(data, safe=b''):
     if isinstance(data, str):
         data = data.encode('utf-8')
     return _quote(data, safe)
-
 
 
 def urljoin(base, *path):
@@ -97,17 +96,19 @@ def urljoin(base, *path):
 
     return ''.join(retval)
 
+
 def as_json(response):
     if "application/json" in response.headers['content-type']:
         if response.text != "":
             return json.loads(response.text)
         else:
             return response.text
-
     return None
+
 
 def to_json(doc):
     return json.dumps(doc)
+
 
 def _path_from_name(name, type):
     """
@@ -118,6 +119,7 @@ def _path_from_name(name, type):
         return name.split('/')
     design, name = name.split('/', 1)
     return ['_design', design, type, name]
+
 
 def _encode_view_options(options):
     """
@@ -132,35 +134,14 @@ def _encode_view_options(options):
         retval[name] = value
     return retval
 
-def as_list(function):
-    """
-    Convert to list a generator function.
-    """
-    @functools.wraps(function)
-    def _decorator(*args, **kwargs):
-        return list(function(*args, **kwargs))
-    return _decorator
-
-def as_dict(function):
-    """
-    Convert to list a generator function.
-    """
-    @functools.wraps(function)
-    def _decorator(*args, **kwargs):
-        return dict(list(function(*args, **kwargs)))
-    return _decorator
 
 def force_bytes(data, encoding="utf-8"):
     if isinstance(data, string_type):
         data = data.encode(encoding)
     return data
 
+
 def force_text(data, encoding="utf-8"):
     if isinstance(data, bytes_type):
         data = data.decode(encoding)
     return data
-
-def int_to_bool(data):
-    if data == 0:
-        return True
-    return False
