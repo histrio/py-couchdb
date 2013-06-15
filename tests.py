@@ -201,6 +201,11 @@ class DatabaseQueryTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.s.delete("testing3")
 
+
+    def test_get_not_existent(self):
+        with self.assertRaises(NotFound):
+            doc = self.db.get("kk4")
+
     def test_contains(self):
         self.assertIn("kk1", self.db)
 
