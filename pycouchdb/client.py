@@ -495,7 +495,6 @@ class Database(object):
         :raises: ValueError
         :returns: doc
         """
-        _doc = copy.copy(doc)
 
         if filename is None:
             if hasattr(content, 'name'):
@@ -508,14 +507,13 @@ class Database(object):
                 filter(None, mimetypes.guess_type(filename)))
 
         headers = {"Content-Type": content_type}
-        resource = self.resource(_doc['_id'])
+        resource = self.resource(doc['_id'])
 
         (resp, result) = resource.put(filename, data=content,
-            params={'rev': _doc['_rev']}, headers=headers)
+            params={'rev': doc['_rev']}, headers=headers)
 
         if resp.status_code < 206:
-            _doc['_rev'] = result['rev']
-            return _doc
+            return self.get(doc["_id"])
 
         raise Conflict(result['reason'])
 

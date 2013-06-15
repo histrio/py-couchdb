@@ -385,5 +385,37 @@ class DatabaseAttachmentsTest(unittest.TestCase):
         with self.assertRaises(StopIteration):
             next(stream)
 
+    def test_regression_unexpected_deletion_of_attachment(self):
+        """
+        When I upload one file the code looks like:
+
+            doc = db.put_attachment(doc, file_object)
+
+        Ok, but now I want to update one field:
+
+            doc['onefield'] = 'newcontent'
+            doc = db.save(doc)
+
+        et voilà, the previously uploaded file has been deleted!
+        """
+
+        doc = self.db.save({"_id": "kk2"})
+
+        with tempfile.NamedTemporaryFile() as f:
+            f.write(b"Hello World")
+            f.seek(0)
+
+            doc = self.db.put_attachment(doc, f, "sample.txt")
+
+        self.assertIn("_attachments", doc)
+        self.assertIn("sample.txt", doc["_attachments"])
+
+        doc["some_attr"] = 1
+        doc = self.db.save(doc)
+
+        self.assertIn("_attachments", doc)
+        self.assertIn("sample.txt", doc["_attachments"])
+
+
 if __name__ == '__main__':
     unittest.main()
