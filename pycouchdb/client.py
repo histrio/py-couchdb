@@ -262,7 +262,7 @@ class Database(object):
 
         return results
 
-    def get(self, id, params={}, **kwargs):
+    def get(self, id, params=None, **kwargs):
         """
         Get a document by id.
 
@@ -281,6 +281,9 @@ class Database(object):
         if params:
             warnings.warn("params parameter is now deprecated in favor to"
                           "**kwargs usage.", DeprecationWarning)
+
+        if params is None:
+            params = {}
 
         params.update(kwargs)
 
@@ -423,7 +426,7 @@ class Database(object):
         (r, result) = self.resource("_compact", ddoc).post()
         return result
 
-    def revisions(self, id, params={}):
+    def revisions(self, id, params=None):
         """
         Get all revisions of one document.
 
@@ -572,7 +575,7 @@ class Database(object):
         return result[0] if len(result) > 0 else None
 
 
-    def _query(self, resource, data=None, params={}, headers={},
+    def _query(self, resource, data=None, params=None, headers=None,
                flat=None, wrapper=None):
 
         if data is None:

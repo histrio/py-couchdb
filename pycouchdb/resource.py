@@ -71,7 +71,11 @@ class Resource(object):
             raise exceptions.GenericError(result)
 
     def request(self, method, path, params=None, data=None,
-                headers={}, stream=False, **kwargs):
+                headers=None, stream=False, **kwargs):
+
+        if headers is None:
+            headers = {}
+
         headers.setdefault('Accept', 'application/json')
 
         if path:
@@ -84,7 +88,6 @@ class Resource(object):
         response = self.session.request(method, url, stream=stream,
                                         data=data, params=params,
                                         headers=headers, **kwargs)
-
         # Ignore result validation if
         # request is with stream mode
 
