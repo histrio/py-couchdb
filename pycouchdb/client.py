@@ -181,8 +181,10 @@ class Server(object):
         :param source: URL to the source database
         :param target: URL to the target database
         """
-        data = copy.copy(kwargs)
-        data.update({'source': source, 'target': target})
+
+        data = {'source': source, 'target': target}
+        data.update(kwargs)
+
         data = utils.force_bytes(utils.to_json(data))
 
         (resp, result) = self.resource.post('_replicate', data=data)
@@ -326,7 +328,7 @@ class Database(object):
         :returns: docs
         """
 
-        _docs = copy.copy(docs)
+        _docs = copy.deepcopy(docs)
 
         # Insert _id field if it not exists
         for doc in _docs:
@@ -360,8 +362,9 @@ class Database(object):
         :returns: generator object
         """
 
-        params = copy.copy(kwargs)
-        params.update({"include_docs": "true"})
+        params = {"include_docs": "true"}
+        params.update(kwargs)
+
         data = None
 
         if "keys" in params:
@@ -452,7 +455,7 @@ class Database(object):
         :returns: doc
         """
 
-        _doc = copy.copy(doc)
+        _doc = copy.deepcopy(doc)
         resource = self.resource(_doc['_id'])
 
         (resp, result) = resource.delete(filename, params={'rev': _doc['_rev']})
@@ -550,8 +553,8 @@ class Database(object):
         :returns: object or None
         """
 
-        params = copy.copy(kwargs)
-        params["limit"] = 1
+        params = {"limit": 1}
+        params.update(kwargs)
 
         path = utils._path_from_name(name, '_view')
         data = None
@@ -605,6 +608,7 @@ class Database(object):
         :returns: generator object
         """
         params = copy.copy(kwargs)
+
         data = {'map': map_func, 'language': language}
 
         if "keys" in params:
@@ -648,7 +652,7 @@ class Database(object):
             data = utils.force_bytes(utils.to_json(data))
 
         params = utils._encode_view_options(params)
-        result =  self._query(self.resource(*path), wrapper=wrapper,
+        result = self._query(self.resource(*path), wrapper=wrapper,
                               flat=flat, params=params, data=data)
 
         if as_list:
