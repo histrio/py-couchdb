@@ -12,7 +12,7 @@ setup(
     url = "https://github.com/niwibe/py-couchdb",
     author = "Andrey Antukh",
     author_email = "niwi@niwi.be",
-    version='1.5',
+    version='1.6',
     packages = [
         "pycouchdb",
     ],

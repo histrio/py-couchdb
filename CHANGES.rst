@@ -2,8 +2,22 @@
 Changelog
 =========
 
+Version 1.6
+-----------
+
+Date: 2013-06-29
+
+- Fixed some wrong behavior with use of a simple copy instead of deepcopy.
+- Change some default parameters from mutable objects to more pythoninc
+  way using immutable types.
+  http://pythonconquerstheuniverse.wordpress.com/category/python-gotchas/
+- Fixed wrong usage of get_attachmen (now uses properly a rev parameter)
+
+
 Version 1.5
 -----------
+
+Date: 2013-06-16
 
 - Improved error management.
 - Improved exception hierarchy.
@@ -21,6 +35,8 @@ Thanks to:
 Version 1.4
 -----------
 
+Date: 2013-05-11
+
 - Fixed invalid url parsing on use session (thanks to KodjoSuprem)
 - Fixed invalid encode method call (thanks to Kristoffer Berdal)
 - Switch to basic auth method as default auth method.
@@ -28,20 +44,29 @@ Version 1.4
     for a query a view (thanks to Kristoffer Berdal for the initial idea)
 - Add flat and as_list parameters to query, one and all methods.
 
+
 Version 1.3
 -----------
 
+Date: 2013-04-04
+
 - Added replication methods thanks to Bruno Bord (@brunobord)
+
 
 Version 1.2
 -----------
+
+Date: 2013-01-27
 
 - All methods that can receive document, do not modify id (inmutable api?)
 - Add delete_bulk methods.
 - A lot of fixes and improvements on tests.
 
+
 Version 1.1
 -----------
+
+Date: 2013-01-27
 
 - Add python view server (imported from https://github.com/lilydjwg/couchdb-python3 with some changes).
 - Now compatible with pypy.
