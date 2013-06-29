@@ -473,7 +473,7 @@ class Database(object):
 
         return _doc
 
-    def get_attachment(self, doc, filename, stream=False):
+    def get_attachment(self, doc, filename, stream=False, **kwargs):
         """
         Get attachment by filename from document.
 
@@ -488,7 +488,11 @@ class Database(object):
         :returns: binary data or
         """
 
-        r, result = self.resource(doc['_id']).get(filename, stream=stream)
+        params = {"rev": doc["_rev"]}
+        params.update(kwargs)
+
+        r, result = self.resource(doc['_id']).get(filename, stream=stream,
+                                                  params=params)
         if stream:
             return _StreamResponse(r)
 
