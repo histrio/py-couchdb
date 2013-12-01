@@ -115,6 +115,20 @@ class DatabaseTests(unittest.TestCase):
         with self.assertRaises(Conflict):
             doc2 = self.db.save(doc)
 
+    def test_special_chars1(self):
+        text="Lürem ipsüm."
+        self.db.save({"_id": "special1", "text": text})
+
+        doc = self.db.get("special1")
+        self.assertEqual(text, doc["text"])
+
+    def test_special_chars2(self):
+        text="Mal sehen ob ich früh aufstehen mag."
+        self.db.save({"_id": "special2", "text": text})
+
+        doc = self.db.get("special2")
+        self.assertEqual(text, doc["text"])
+
     def test_len(self):
         doc1 = {'_id': 'kk4', 'foo':'bar'}
         doc2 = self.db.save(doc1)
