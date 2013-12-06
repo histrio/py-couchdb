@@ -100,7 +100,7 @@ def urljoin(base, *path):
 def as_json(response):
     if "application/json" in response.headers['content-type']:
         if response.text != "":
-            return json.loads(response.text)
+            return response.json()
         else:
             return response.text
     return None
