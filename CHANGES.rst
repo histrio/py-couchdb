@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 1.7
+-----------
+
+- Fix encoding problems on retrieve data (thanks to Jonas Hagen)
+
 Version 1.6
 -----------
 
