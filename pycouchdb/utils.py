@@ -99,6 +99,7 @@ def urljoin(base, *path):
 
 def as_json(response):
     if "application/json" in response.headers['content-type']:
+        response.encoding = 'utf-8'
         if response.text != "":
             return response.json()
         else:
