@@ -46,3 +46,9 @@ To test py-couchdb, simply run:
  
 This command assumes a couchdb account with username "admin" and
 password "admin". Otherwise change "SERVER_URL" in tests.py.
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/niwibe/py-couchdb/trend.png
+   :alt: Bitdeli badge
+   :target: https://bitdeli.com/free
+
