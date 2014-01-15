@@ -112,7 +112,7 @@ Delete a document:
 Querying a database
 -------------------
 
-With couchdb you can make two type of query: temporary o a view. This is a simple way to make
+With couchdb you can make two types of queries: temporary or view. This is a simple way to make
 a temporary query:
 
 .. code-block:: python
@@ -124,7 +124,7 @@ a temporary query:
     [{'value': 1, 'id': '8b588fa0a3b74a299c6d958467994b9a', 'key': 'Fooo'}]
 
 
-And this is a way for make a query using a predefined views:
+And this is a way to make a query using predefined views:
 
 .. code-block:: python
 
