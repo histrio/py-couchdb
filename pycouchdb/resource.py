@@ -13,7 +13,7 @@ class Resource(object):
                  credentials=None, authmethod="session", verify=False):
 
         self.base_url = base_url
-        self.verify = verify
+#        self.verify = verify
 
         if not session:
             self.session = requests.session()
@@ -26,6 +26,7 @@ class Resource(object):
                 self.session.headers.update({'X-Couch-Full-Commit': 'false'})
         else:
             self.session = session
+        self.session.verify = verify
 
     def _authenticate(self, credentials, method):
         if not credentials:
