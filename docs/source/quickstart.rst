@@ -7,7 +7,7 @@ This page gives a good introduction in how to get started with py-couchdb. This 
 installed. If you do not, head over to the :ref:`Installation <install>` section.
 
 
-Connecto to a server
+Connect to a server
 --------------------
 
 Connect to a couchdb server is very simple. Begin by importing ``pycouchdb`` module and instance
@@ -64,7 +64,7 @@ And can remove a database:
 
 
 If you intent remove not existent database, `NotFound` exception is raised. For
-more information see :ref:`Èxceptions API <exceptions>`.
+more information see :ref:`Exceptions API <exceptions>`.
 
 .. code-block:: python
 
@@ -90,7 +90,7 @@ The simplest way for get a document is using its ``id``.
                         '_id': 'b1536a237d8d14f3bfde54b41b036d8a'}
 
 
-You can create a own document:
+You can create an own document:
 
 .. code-block:: python
 
@@ -112,7 +112,7 @@ Delete a document:
 Querying a database
 -------------------
 
-With couchdb you can make two types of queries: temporary or view. This is a simple way to make
+With couchDB you can make two types of queries: temporary or view. This is a simple way to make
 a temporary query:
 
 .. code-block:: python
@@ -145,7 +145,7 @@ And this is a way to make a query using predefined views:
 Subscribe to a changes stream feed
 ----------------------------------
 
-CouchDB exposes a fantastic stream api for push change notifications,
+CouchDB exposes a fantastic stream API for push change notifications,
 and with **pycouchdb** you can subscribe to these changes in a very
 simple way:
 
