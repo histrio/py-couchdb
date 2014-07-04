@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import os
-import requests
 import json
 import uuid
 import copy
@@ -426,24 +425,38 @@ class Database(object):
         (r, result) = self.resource("_compact", ddoc).post()
         return result
 
-    def revisions(self, id, params=None):
+    def revisions(self, id, status='available', params=None, **kwargs):
         """
         Get all revisions of one document.
 
-        :param id: document id
+        :param id:      document id
+        :param status:  filter of reverion status, set empty to list all
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
 
         :returns: generator object
         """
+        if params:
+            warnings.warn("params parameter is now deprecated in favor to"
+                          "**kwargs usage.", DeprecationWarning)
+
+        if params is None:
+            params = {}
+
+        params.update(kwargs)
+
+        if not params.get('revs_info'):
+            params['revs_info'] = 'true'
 
         resource = self.resource(id)
-        (resp, result) = resource.get(params={'revs_info': 'true'})
+        (resp, result) = resource.get(params=params)
         if resp.status_code == 404:
             raise exp.NotFound("docid {0} not found".format(id))
 
         for rev in result['_revs_info']:
-            if rev['status'] == 'available':
-                yield self.get(id, params=params)
+            if status and rev['status'] == status:
+                yield self.get(id, rev=rev['rev'])
+            elif not status:
+                yield self.get(id, rev=rev['rev'])
 
     def delete_attachment(self, doc, filename):
         """
