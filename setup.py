@@ -12,7 +12,7 @@ setup(
     url = "https://github.com/niwibe/py-couchdb",
     author = "Andrey Antukh",
     author_email = "niwi@niwi.be",
-    version='1.7',
+    version="1.8",
     packages = [
         "pycouchdb",
     ],
@@ -36,10 +36,10 @@ setup(
         "Topic :: Utilities",
     ],
     entry_points = {
-        'console_scripts': [
-            'couchpy = pycouchdb.view:main'
+        "console_scripts": [
+            "couchpy = pycouchdb.view:main"
         ],
     },
-    cmdclass = {'build_py': build_py},
+    cmdclass = {"build_py": build_py},
     install_requires = ["requests"]
 )
