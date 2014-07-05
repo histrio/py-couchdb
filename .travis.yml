@@ -1,0 +1,22 @@
+language: python
+
+services:
+  - couchdb
+
+python:
+  - "3.4"
+  - "3.3"
+  - "2.7"
+
+install:
+  - pip install requests --use-mirrors
+
+script:
+  - python tests.py
+
+notifications:
+  email:
+    recipients:
+      - niwi@niwi.be
+    on_success: change
+    on_failure: change
