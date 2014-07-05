@@ -11,6 +11,7 @@ from pycouchdb.exceptions import Conflict, NotFound
 from pycouchdb import exceptions as exp
 
 SERVER_URL = 'http://admin:admin@localhost:5984/'
+SERVER_URL = 'http://localhost:5984/'
 
 class ServerTests(unittest.TestCase):
     @classmethod
