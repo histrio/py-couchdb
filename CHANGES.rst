@@ -2,8 +2,18 @@
 Changelog
 =========
 
+Version 1.8
+-----------
+
+Date: 2014-07-xx
+
+- Fix revisions api (Thanks to @GuoJing)
+
+
 Version 1.7
 -----------
+
+Date: 2013-12-13
 
 - Fix encoding problems on retrieve data (thanks to Jonas Hagen)
 
