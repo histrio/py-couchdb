@@ -5,11 +5,11 @@ py-couchdb
 .. image:: https://img.shields.io/travis/niwibe/py-couchdb.svg?style=flat
     :target: https://travis-ci.org/niwibe/py-couchdb
 
-.. image:: https://img.shields.io/pypi/v/py-couchdb.svg?style=flat
-    :target: https://pypi.python.org/pypi/py-couchdb
+.. image:: https://img.shields.io/pypi/v/pycouchdb.svg?style=flat
+    :target: https://pypi.python.org/pypi/pycouchdb
 
-.. image:: https://img.shields.io/pypi/dm/py-couchdb.svg?style=flat
-    :target: https://pypi.python.org/pypi/py-couchdb
+.. image:: https://img.shields.io/pypi/dm/pycouchdb.svg?style=flat
+    :target: https://pypi.python.org/pypi/pycouchdb
 
 
 Modern pure python CouchDB Client.
