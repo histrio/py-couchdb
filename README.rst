@@ -2,6 +2,16 @@
 py-couchdb
 ==========
 
+.. image:: https://img.shields.io/travis/niwibe/py-couchdb.svg?style=flat
+    :target: https://travis-ci.org/niwibe/py-couchdb
+
+.. image:: https://img.shields.io/pypi/v/py-couchdb.svg?style=flat
+    :target: https://pypi.python.org/pypi/py-couchdb
+
+.. image:: https://img.shields.io/pypi/dm/py-couchdb.svg?style=flat
+    :target: https://pypi.python.org/pypi/py-couchdb
+
+
 Modern pure python CouchDB Client.
 
 Currently there are several libraries in python to connect to couchdb. **Why one more?** It's very simple. 
@@ -43,12 +53,3 @@ To test py-couchdb, simply run:
 .. code-block:: console
 
    python tests.py
- 
-This command assumes a couchdb account with username "admin" and
-password "admin". Otherwise change "SERVER_URL" in tests.py.
-
-
-.. image:: https://d2weczhvl823v0.cloudfront.net/niwibe/py-couchdb/trend.png
-   :alt: Bitdeli badge
-   :target: https://bitdeli.com/free
-
