@@ -5,9 +5,10 @@ Changelog
 Version 1.8
 -----------
 
-Date: 2014-07-xx
+Date: 2014-07-17
 
 - Fix revisions api (Thanks to @GuoJing)
+- Speed up JSON decoding (by David Kendal)
 
 
 Version 1.7
