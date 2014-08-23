@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 1.9
+-----------
+
+Date: 2014-08-23
+
+- Add support for `include_docs='false'`
+
 Version 1.8
 -----------
 
