@@ -20,9 +20,7 @@ setup(
     zip_safe = False,
     include_package_data = True,
     classifiers = [
-        #"Development Status :: 5 - Production/Stable",
         "Development Status :: 4 - Beta",
-        #"Operating System :: OS Independent",
         "Environment :: Web Environment",
         "License :: OSI Approved :: BSD License",
         "Intended Audience :: Developers",
