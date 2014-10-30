@@ -484,5 +484,12 @@ class DatabaseAttachmentsTest(unittest.TestCase):
         self.assertIn("sample.txt", doc["_attachments"])
 
 
+class UtilsTest(unittest.TestCase):
+
+    def test_quote(self):
+        #
+        self.assertEqual(couchdb.utils.quote('Š'), '%C5%A0')
+
+
 if __name__ == '__main__':
     unittest.main()

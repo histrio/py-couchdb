@@ -50,7 +50,7 @@ def _extract_credentials(url):
 
 
 def quote(data, safe=b''):
-    if isinstance(data, str):
+    if isinstance(data, string_type):
         data = data.encode('utf-8')
     return _quote(data, safe)
 
