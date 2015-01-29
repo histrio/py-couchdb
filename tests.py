@@ -116,6 +116,11 @@ class DatabaseTests(unittest.TestCase):
         with self.assertRaises(Conflict):
             doc2 = self.db.save(doc)
 
+    def test_save_batch(self):
+        doc = {"foo": "bar"}
+        doc2 = self.db.save(doc, batch=True)
+        self.assertIn("_id", doc2)
+
     def test_special_chars1(self):
         text="Lürem ipsüm."
         self.db.save({"_id": "special1", "text": text})
