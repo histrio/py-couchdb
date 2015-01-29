@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Version 1.10
+------------
+
+Date: 2015-01-29
+
+- Proper handling heartbeats on changes feed (by @krisb78)
+- Add batch option to save method (by @kravietz)
+- Fix unicode related problems on python 2.7 (by @bmihelac)
+
+
 Version 1.9
 -----------
 
