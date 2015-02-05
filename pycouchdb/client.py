@@ -708,7 +708,6 @@ class Database(object):
 
         # Possible options: "continuous", "longpoll"
         kwargs.setdefault("feed", "continuous")
-        kwargs.setdefault("since", 1)
 
         (resp, result) = self.resource("_changes").get(params=kwargs, stream=True)
         try:
