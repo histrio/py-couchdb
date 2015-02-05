@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 1.11
+------------
+
+Date: 2015-02-05
+
+- Remove default "since" parameter from `changes_feed` method. (by @krisb78)
+
+
 Version 1.10
 ------------
 
