@@ -277,7 +277,7 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertIn("kk1", self.db)
 
     def test_all_01(self):
-        result = [x for x in self.db.all() if not x['_id'].startswith("_")]
+        result = [x for x in self.db.all() if not x['key'].startswith("_")]
         self.assertEqual(len(result), 3)
 
     def test_all_02(self):
@@ -285,15 +285,15 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertEqual(len(result), 2)
 
     def test_all_03(self):
-        result = list(self.db.all(keys=['kk1','kk2'], flat="_id"))
+        result = list(self.db.all(keys=['kk1','kk2'], flat="key"))
         self.assertEqual(result, ['kk1', 'kk2'])
 
     def test_all_04(self):
-        result = self.db.all(keys=['kk1','kk2'], flat="_id")
+        result = self.db.all(keys=['kk1','kk2'], flat="key")
         self.assertIsInstance(result, types.GeneratorType)
 
     def test_all_05(self):
-        result = self.db.all(keys=['kk1','kk2'], flat="_id", as_list=True)
+        result = self.db.all(keys=['kk1','kk2'], flat="key", as_list=True)
         self.assertIsInstance(result, list)
 
     def test_all_startkey_endkey(self):

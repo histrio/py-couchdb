@@ -393,17 +393,7 @@ class Database(object):
 
         def _iterate():
             for row in result["rows"]:
-                yield wrapper(row['doc'])
-
-        def _iterate_no_docs():
-            for row in result["rows"]:
-                doc = {"id": row['id'], "rev": row['value']['rev']}
-                yield wrapper(doc)
-
-        if params["include_docs"].upper() == "FALSE":
-            if as_list:
-                return list(_iterate_no_docs())
-            return _iterate_no_docs()
+                yield wrapper(row)
 
         if as_list:
             return list(_iterate())
