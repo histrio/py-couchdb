@@ -707,7 +707,7 @@ class Database(object):
 
         (resp, result) = self.resource("_changes").get(params=kwargs, stream=True)
         try:
-            for line in resp.iter_lines(chunk_size=1):
+            for line in resp.iter_lines():
                 # ignore heartbeats
                 if not line:
                     reader.on_heartbeat()
