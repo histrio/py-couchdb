@@ -200,8 +200,11 @@ class Database(object):
         self.name = name
 
     def __contains__(self, id):
-        (resp, result) = self.resource.head(_id_to_path(id))
-        return resp.status_code < 206
+        try:
+            (resp, result) = self.resource.head(_id_to_path(id))
+            return resp.status_code < 206
+        except exp.NotFound:
+            return False
 
     def __len__(self):
         (resp, result) = self.resource.get()
