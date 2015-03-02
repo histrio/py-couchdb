@@ -275,6 +275,7 @@ class DatabaseQueryTests(unittest.TestCase):
 
     def test_contains(self):
         self.assertIn("kk1", self.db)
+        self.assertNotIn("does_not_exist_in_db", self.db)
 
     def test_all_01(self):
         result = [x for x in self.db.all() if not x['key'].startswith("_")]
