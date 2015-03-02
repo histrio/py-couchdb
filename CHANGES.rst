@@ -2,6 +2,18 @@
 Changelog
 =========
 
+Version 1.12
+------------
+
+Date: 2015-03-02
+
+- Backward incompatibility: `all` method changes its semantics, the wrapper now
+  receives a complete result item and it is the responsibility of wrapper
+  to handle it. (thanks to @krisb78)
+- Bug fix in __contains__ method of Database class (thanks to @beezz)
+- Improved performance on changes_feed (thanks to @krisb78)
+
+
 Version 1.11
 ------------
 
