@@ -14,8 +14,14 @@ py-couchdb
 
 Modern pure python CouchDB Client.
 
-Currently there are several libraries in python to connect to couchdb. **Why one more?** It's very simple. 
+Currently there are several libraries in python to connect to couchdb. **Why one more?** 
+It's very simple.
+
 All seems not be maintained, all libraries used standard Python libraries for http requests, and are not compatible with python3.
+
+NOTE: In connection with my having moved on to other domains, py-couchdb is in search of a new
+maintainer. If you're interested, please get in touch; direct email niwi@niwi.be is probably best.
+
 
 Advantages of py-couchdb
 ^^^^^^^^^^^^^^^^^^^^^^^^
