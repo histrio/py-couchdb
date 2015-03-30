@@ -2,8 +2,8 @@
 py-couchdb
 ==========
 
-.. image:: https://img.shields.io/travis/niwibe/py-couchdb.svg?style=flat
-    :target: https://travis-ci.org/niwibe/py-couchdb
+.. image:: https://travis-ci.org/histrio/py-couchdb.svg?branch=master
+    :target: https://travis-ci.org/histrio/py-couchdb
 
 .. image:: https://img.shields.io/pypi/v/pycouchdb.svg?style=flat
     :target: https://pypi.python.org/pypi/pycouchdb
@@ -18,9 +18,6 @@ Currently there are several libraries in python to connect to couchdb. **Why one
 It's very simple.
 
 All seems not be maintained, all libraries used standard Python libraries for http requests, and are not compatible with python3.
-
-NOTE: In connection with my having moved on to other domains, py-couchdb is in search of a new
-maintainer. If you're interested, please get in touch; direct email niwi@niwi.be is probably best.
 
 
 Advantages of py-couchdb
