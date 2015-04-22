@@ -203,9 +203,16 @@ class Database(object):
         (resp, result) = self.resource.head(_id_to_path(id))
         return resp.status_code < 206
 
-    def __len__(self):
+    def config(self):
+        """
+        Get database status data such as document count, update sequence etc.
+        :return: dict
+        """
         (resp, result) = self.resource.get()
-        return result['doc_count']
+        return result
+
+    def __len__(self):
+        return self.config()['doc_count']
 
     def delete(self, doc_or_id):
         """
