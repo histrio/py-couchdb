@@ -329,7 +329,7 @@ class Database(object):
         (resp, result) = self.resource(*_id_to_path(id)).get(params=params)
         return result
 
-    def save(self, doc):
+    def save(self, doc, batch=False):
         """
         Save or update a document.
 
@@ -337,6 +337,7 @@ class Database(object):
             Now returns a new document instead of modify the original.
 
         :param doc: document
+        :param batch: allow batch=ok inserts (default False)
         :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong
                  revision.
         :returns: doc
@@ -346,8 +347,13 @@ class Database(object):
         if "_id" not in _doc:
             _doc['_id'] = uuid.uuid4().hex
 
+        if batch:
+            params = { 'batch': 'ok' }
+        else:
+            params = {}
+
         data = utils.force_bytes(utils.to_json(_doc))
-        (resp, result) = self.resource(_doc['_id']).put(data=data)
+        (resp, result) = self.resource(_doc['_id']).put(data=data, params=params)
 
         if resp.status_code == 409:
             raise exp.Conflict(result['reason'])
