@@ -189,6 +189,39 @@ class Server(object):
         (resp, result) = self.resource.post('_replicate', data=data)
         return result
 
+    def changes_feed(self, feed_reader, **kwargs):
+        """
+        Subscribe to changes feed of the whole CouchDB server.
+
+        Note: this method is blocking.
+
+
+        :param feed_reader: callable or :py:class:`~BaseFeedReader`
+                            instance
+
+        .. [Ref] http://docs.couchdb.org/en/1.6.1/api/server/common.html#db-updates
+        .. versionadded: 1.10
+        """
+
+        if not callable(feed_reader):
+            raise exp.UnexpectedError("feed_reader must be callable or class")
+
+        if isinstance(feed_reader, feedreader.BaseFeedReader):
+            reader = feed_reader(self)
+        else:
+            reader = feedreader.SimpleFeedReader()(self, feed_reader)
+
+        # Possible options: "continuous", "longpoll"
+        kwargs.setdefault("feed", "continuous")
+        kwargs.setdefault("since", 1)
+
+        (resp, result) = self.resource("_db_updates").get(params=kwargs, stream=True)
+        try:
+            for line in resp.iter_lines(chunk_size=1):
+                reader.on_message(json.loads(utils.force_text(line)))
+        except exp.FeedReaderExited as e:
+            reader.on_close()
+
 
 class Database(object):
     """
@@ -694,7 +727,7 @@ class Database(object):
 
     def changes_feed(self, feed_reader, **kwargs):
         """
-        Subscribe to changes feed of couchdb.
+        Subscribe to changes feed of couchdb database.
 
         Note: this method is blocking.
 
