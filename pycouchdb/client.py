@@ -16,10 +16,10 @@ from .resource import Resource
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
 
-def _id_to_path(id):
-    if id[:1] == "_":
-        return id.split("/", 1)
-    return [id]
+def _id_to_path(ident):
+    if ident[:1] == "_":
+        return ident.split("/", 1)
+    return [ident]
 
 
 class _StreamResponse(object):
@@ -28,6 +28,7 @@ class _StreamResponse(object):
 
     See more on: http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
     """
+
     def __init__(self, response):
         self._response = response
 
@@ -71,7 +72,7 @@ class Server(object):
     def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True,
                  authmethod="basic", verify=False):
 
-        self.base_url, credentials = utils._extract_credentials(base_url)
+        self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
                                  credentials=credentials,
                                  authmethod=authmethod,
@@ -222,7 +223,7 @@ class Server(object):
         try:
             for line in resp.iter_lines(chunk_size=1):
                 reader.on_message(json.loads(utils.force_text(line)))
-        except exp.FeedReaderExited as e:
+        except exp.FeedReaderExited:
             reader.on_close()
 
 
@@ -235,8 +236,8 @@ class Database(object):
         self.resource = resource
         self.name = name
 
-    def __contains__(self, id):
-        (resp, result) = self.resource.head(_id_to_path(id))
+    def __contains__(self, ident):
+        (resp, result) = self.resource.head(_id_to_path(ident))
         return resp.status_code < 206
 
     def config(self):
@@ -267,7 +268,6 @@ class Database(object):
                  wrong revision.
         """
 
-        _id = None
         if isinstance(doc_or_id, dict):
             if "_id" not in doc_or_id:
                 raise ValueError("Invalid document, missing _id attr")
@@ -297,26 +297,26 @@ class Database(object):
             if "_deleted" not in doc:
                 doc["_deleted"] = True
 
-        data = utils.force_bytes(utils.to_json({"docs" : _docs}))
+        data = utils.force_bytes(utils.to_json({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
         (resp, results) = self.resource.post("_bulk_docs", data=data, params=params)
 
         for result, doc in zip(results, _docs):
-          if "error" in result:
-            raise exp.Conflict("one or more docs are not saved")
+            if "error" in result:
+                raise exp.Conflict("one or more docs are not saved")
 
         return results
 
-    def get(self, id, params=None, **kwargs):
+    def get(self, ident, params=None, **kwargs):
         """
         Get a document by id.
 
         .. versionadded: 1.5
-            Now the prefered method to pass params is via **kwargs
+            Now the preferred method to pass params is via **kwargs
             instead of params argument. **params** argument is now
             deprecated and will be deleted in future versions.
 
-        :param id: document id
+        :param ident: document identifier
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document
                  not exists
 
@@ -332,7 +332,7 @@ class Database(object):
 
         params.update(kwargs)
 
-        (resp, result) = self.resource(*_id_to_path(id)).get(params=params)
+        (resp, result) = self.resource(*_id_to_path(ident)).get(params=params)
         return result
 
     def save(self, doc, batch=False):
@@ -354,7 +354,7 @@ class Database(object):
             _doc['_id'] = uuid.uuid4().hex
 
         if batch:
-            params = { 'batch': 'ok' }
+            params = {'batch': 'ok'}
         else:
             params = {}
 
@@ -425,7 +425,7 @@ class Database(object):
             data = {"keys": params.pop("keys")}
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         if data:
             (resp, result) = self.resource.post("_all_docs", params=params, data=data)
         else:
@@ -610,7 +610,7 @@ class Database(object):
         resource = self.resource(doc['_id'])
 
         (resp, result) = resource.put(filename, data=content,
-            params={'rev': doc['_rev']}, headers=headers)
+                                      params={'rev': doc['_rev']}, headers=headers)
 
         if resp.status_code < 206:
             return self.get(doc["_id"])
@@ -643,9 +643,9 @@ class Database(object):
         if data:
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         result = list(self._query(self.resource(*path), wrapper=wrapper,
-                           flat=flat, params=params, data=data))
+                                  flat=flat, params=params, data=data))
 
         return result[0] if len(result) > 0 else None
 
@@ -695,7 +695,7 @@ class Database(object):
         if reduce_func:
             data["reduce"] = reduce_func
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         data = utils.force_bytes(utils.to_json(data))
 
         result = self._query(self.resource("_temp_view"), params=params,
@@ -729,9 +729,9 @@ class Database(object):
         if data:
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         result = self._query(self.resource(*path), wrapper=wrapper,
-                              flat=flat, params=params, data=data)
+                             flat=flat, params=params, data=data)
 
         if as_list:
             return list(result)

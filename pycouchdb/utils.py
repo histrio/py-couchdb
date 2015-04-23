@@ -24,16 +24,16 @@ else:
 json_encoder = json.JSONEncoder()
 
 
-def _extract_credentials(url):
+def extract_credentials(url):
     """
     Extract authentication (user name and password) credentials from the
     given URL.
 
-    >>> _extract_credentials('http://localhost:5984/_config/')
+    >>> extract_credentials('http://localhost:5984/_config/')
     ('http://localhost:5984/_config/', None)
-    >>> _extract_credentials('http://joe:secret@localhost:5984/_config/')
+    >>> extract_credentials('http://joe:secret@localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe', 'secret'))
-    >>> _extract_credentials('http://joe%40example.com:secret@'
+    >>> extract_credentials('http://joe%40example.com:secret@'
     ...                      'localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe@example.com', 'secret'))
     """
@@ -111,7 +111,7 @@ def to_json(doc):
     return json.dumps(doc)
 
 
-def _path_from_name(name, type):
+def _path_from_name(name, itype):
     """
     Expand a 'design/foo' style name to its full path as a list of
     segments.
@@ -119,10 +119,10 @@ def _path_from_name(name, type):
     if name.startswith('_'):
         return name.split('/')
     design, name = name.split('/', 1)
-    return ['_design', design, type, name]
+    return ['_design', design, itype, name]
 
 
-def _encode_view_options(options):
+def encode_view_options(options):
     """
     Encode any items in the options dict that are sent as a JSON string to a
     view/list function.
