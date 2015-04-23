@@ -93,6 +93,9 @@ class Server(object):
         (r, result) = self.resource.get('_all_dbs')
         return len(result)
 
+    def __str__(self):
+        return '<CouchDB Server "{}">'.format(self.base_url)
+
     def info(self):
         """
         Get server info.
@@ -246,6 +249,9 @@ class Database(object):
 
     def __len__(self):
         return self.config()['doc_count']
+
+    def __str__(self):
+        return '<CouchDB Database "{}">'.format(self.name)
 
     def delete(self, doc_or_id):
         """
