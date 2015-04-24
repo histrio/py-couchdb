@@ -824,7 +824,7 @@ class Database(object):
 
         # try to load views
         views_dir = os.path.join(design_doc_name, 'views')
-        if os.access(filters_dir):
+        if os.access(filters_dir, os.R_OK):
             design_doc['views'] = {}
 
             for view_name in os.listdir(views_dir):
