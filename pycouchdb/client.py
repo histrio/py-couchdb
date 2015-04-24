@@ -813,7 +813,7 @@ class Database(object):
 
         # first try filters
         filters_dir = os.path.join(design_doc_name, 'filters')
-        if os.access(filters_dir):
+        if os.access(filters_dir, os.R_OK):
             design_doc['filters'] = {}
             for filter_file_name in os.listdir(filters_dir):
                 if filter_file_name.endswith(JS_EXT):
