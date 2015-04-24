@@ -99,7 +99,7 @@ class Resource(object):
             result = utils.as_json(response)
 
         if result is None:
-            return (response, result)
+            return response, result
 
         if isinstance(result, list):
             for res in result:
@@ -107,7 +107,7 @@ class Resource(object):
         else:
             self._check_result(response, result)
 
-        return (response, result)
+        return response, result
 
     def get(self, path=None, **kwargs):
         return self.request("GET", path, **kwargs)
