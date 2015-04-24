@@ -10,10 +10,15 @@ import warnings
 from . import utils
 from . import feedreader
 from . import exceptions as exp
+from pycouchdb.exceptions import NotFound
 from .resource import Resource
 
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
+
+JS_EXT = '.js'
+MAP_FILE_NAME = 'map' + JS_EXT
+REDUCE_FILE_NAME = 'reduce' + JS_EXT
 
 
 def _id_to_path(ident):
@@ -487,12 +492,12 @@ class Database(object):
         (r, result) = self.resource("_compact", ddoc).post()
         return result
 
-    def revisions(self, id, status='available', params=None, **kwargs):
+    def revisions(self, ident, status='available', params=None, **kwargs):
         """
         Get all revisions of one document.
 
         :param id:      document id
-        :param status:  filter of reverion status, set empty to list all
+        :param status:  filter of revision status, set empty to list all
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
 
         :returns: generator object
@@ -509,16 +514,16 @@ class Database(object):
         if not params.get('revs_info'):
             params['revs_info'] = 'true'
 
-        resource = self.resource(id)
+        resource = self.resource(ident)
         (resp, result) = resource.get(params=params)
         if resp.status_code == 404:
-            raise exp.NotFound("docid {0} not found".format(id))
+            raise exp.NotFound("docid {0} not found".format(ident))
 
         for rev in result['_revs_info']:
             if status and rev['status'] == status:
-                yield self.get(id, rev=rev['rev'])
+                yield self.get(ident, rev=rev['rev'])
             elif not status:
-                yield self.get(id, rev=rev['rev'])
+                yield self.get(ident, rev=rev['rev'])
 
     def delete_attachment(self, doc, filename):
         """
@@ -649,7 +654,6 @@ class Database(object):
 
         return result[0] if len(result) > 0 else None
 
-
     def _query(self, resource, data=None, params=None, headers=None,
                flat=None, wrapper=None):
 
@@ -778,3 +782,76 @@ class Database(object):
 
         (resp, result) = self.resource("_changes").get(params=kwargs)
         return result['last_seq'], result['results']
+
+    def upload_design(self, directory):
+        """
+        Compiles files in structured directory into a CouchDB design document and loads it into
+        a specified database. Directory structure:
+
+        designdocname
+            |
+            +- 'views'
+            |    +- viewname
+            |    |   +- 'map.js'    (required)
+            |    .   +- 'reduce.js' (optional)
+            +- 'filters'
+            |    +- 'filter1.js'
+            .    .
+
+        Example: a call to db.design_loader('./designdocname') will result in loading a new
+        design document with new view at /database/_design/designdocname/_view/viewname as
+        well as a filter called 'filter1'.
+
+        :param directory: input structured directory
+        """
+
+        design_doc_name = os.path.basename(directory)
+
+        # prepare design document template
+        design_doc = {'_id': '_design/' + design_doc_name, 'language': 'javascript'}
+        empty_design_len = len(design_doc)
+
+        # first try filters
+        filters_dir = os.path.join(design_doc_name, 'filters')
+        if os.access(filters_dir):
+            design_doc['filters'] = {}
+            for filter_file_name in os.listdir(filters_dir):
+                if filter_file_name.endswith(JS_EXT):
+                    filter_name = os.path.basename(filter_file_name).replace(JS_EXT, "")
+                    with open(os.path.join(filters_dir, filter_file_name)) as f:
+                        # actually load the filter contents
+                        design_doc['filters'][filter_name] = f.read()
+
+        # try to load views
+        views_dir = os.path.join(design_doc_name, 'views')
+        if os.access(filters_dir):
+            design_doc['views'] = {}
+
+            for view_name in os.listdir(views_dir):
+
+                map_file_name = os.path.join(views_dir, view_name, MAP_FILE_NAME)
+                # map.js is required in each view
+                if not os.access(map_file_name, os.R_OK):
+                    raise NotFound('View directory {} has no file {}'.format(view_name, MAP_FILE_NAME))
+                with open(map_file_name) as f:
+                    design_doc['views'][view_name]['map'] = f.read()
+
+                reduce_file_name = os.path.join(views_dir, view_name, REDUCE_FILE_NAME)
+                # reduce.js is optional
+                if os.access(reduce_file_name, os.R_OK):
+                    with open(reduce_file_name) as f:
+                        design_doc['views'][view_name]['reduce'] = f.read()
+
+        # finally save the new design document
+        if len(design_doc) > empty_design_len:
+            self.save(design_doc)
+
+    def save_design(self, directory):
+        """
+        Save database's design document to a structured directory.
+
+        :param directory:
+        :return:
+        """
+        raise NotImplemented()
+
