@@ -53,7 +53,7 @@ class Server(object):
     """
     Class that represents a couchdb connection.
 
-    :param verify: setup ssl verifycation.
+    :param verify: setup ssl verification.
     :param base_url: a full url to couchdb (can contain auth data).
     :param full_commit: If ``False``, couchdb not commits all data on a
                         request is finished.
@@ -65,7 +65,7 @@ class Server(object):
        Set basic auth method as default instead of session method.
 
     .. versionchanged: 1.5
-        Add verify parameter for setup ssl verifycaton
+        Add verify parameter for setup ssl verificaton
 
     """
 
