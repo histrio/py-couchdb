@@ -812,7 +812,7 @@ class Database(object):
         empty_design_len = len(design_doc)
 
         # first try filters
-        filters_dir = os.path.join(design_doc_name, 'filters')
+        filters_dir = os.path.join(directory, 'filters')
         if os.access(filters_dir, os.R_OK):
             design_doc['filters'] = {}
             for filter_file_name in os.listdir(filters_dir):
@@ -823,7 +823,7 @@ class Database(object):
                         design_doc['filters'][filter_name] = f.read()
 
         # try to load views
-        views_dir = os.path.join(design_doc_name, 'views')
+        views_dir = os.path.join(directory, 'views')
         if os.access(filters_dir, os.R_OK):
             design_doc['views'] = {}
 
@@ -833,6 +833,9 @@ class Database(object):
                 # map.js is required in each view
                 if not os.access(map_file_name, os.R_OK):
                     raise NotFound('View directory {} has no file {}'.format(view_name, MAP_FILE_NAME))
+
+                design_doc['views'][view_name] = {}
+
                 with open(map_file_name) as f:
                     design_doc['views'][view_name]['map'] = f.read()
 
