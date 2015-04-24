@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import requests
 
 from . import utils
-from . import exceptions
+from .exceptions import *
 
 
 class Resource(object):
@@ -62,14 +62,14 @@ class Resource(object):
         # This is here because couchdb can return http 201
         # but containing a list of conflict errors
         if error == 'conflict' or error == "file_exists":
-            raise exceptions.Conflict(reason or "Conflict")
+            raise Conflict(reason or "Conflict")
 
         if response.status_code > 205:
             if response.status_code == 404 or error == 'not_found':
-                raise exceptions.NotFound(reason or 'Not found')
+                raise NotFound(reason or 'Not found')
             elif error == 'bad_request':
-                raise exceptions.BadRequest(reason or "Bad request")
-            raise exceptions.GenericError(result)
+                raise BadRequest(reason or "Bad request")
+            raise GenericError(result)
 
     def request(self, method, path, params=None, data=None,
                 headers=None, stream=False, **kwargs):
