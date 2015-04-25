@@ -787,17 +787,27 @@ class Database(object):
 
     @staticmethod
     def _get_js(input_file_name, minify):
+        # make it simple if minify is disabled
         if not minify:
             with open(input_file_name) as f:
                 return f.read()
-        else:
-            f, output_file_name = tempfile.mkstemp()
-            yuicompressor.run("--type", "js", "--charset", "UTF8", "-o", output_file_name, input_file_name)
-            ff = os.fdopen(f)
-            minified_content = ff.read()
-            ff.close()
-            os.remove(output_file_name)
-            return minified_content
+
+        # try if cached minified data is not available
+        cache_file_name = '.' + os.path.basename(input_file_name).replace('.js', '.min.js')
+        cache_full_name = os.path.join(os.path.dirname(input_file_name), cache_file_name)
+
+        can_use_cache = False
+        if os.access(cache_full_name, os.R_OK):
+            if os.stat(cache_full_name).st_mtime > os.stat(input_file_name).st_mtime:
+                can_use_cache = True
+
+        if not can_use_cache:
+            # cache file is older, need to refresh
+            yuicompressor.run("--type", "js", "--charset", "UTF8", "-o", cache_full_name, input_file_name)
+
+        # return cached file contents
+        with open(cache_full_name) as f:
+            return f.read()
 
     def upload_design(self, directory, minify=True):
         """
@@ -833,6 +843,11 @@ class Database(object):
         if os.access(filters_dir, os.R_OK):
             design_doc['filters'] = {}
             for filter_file_name in os.listdir(filters_dir):
+
+                # skip cache files
+                if filter_file_name.startswith('.'):
+                    continue
+
                 if filter_file_name.endswith(JS_EXT):
                     filter_name = os.path.basename(filter_file_name).replace(JS_EXT, "")
                     design_doc['filters'][filter_name] = self._get_js(os.path.join(filters_dir, filter_file_name), minify)

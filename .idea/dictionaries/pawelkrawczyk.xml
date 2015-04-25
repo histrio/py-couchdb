@@ -5,6 +5,8 @@
       <w>etag</w>
       <w>ident</w>
       <w>longpoll</w>
+      <w>minified</w>
+      <w>minify</w>
       <w>pycouchdb</w>
       <w>versionadded</w>
       <w>versionchanged</w>
