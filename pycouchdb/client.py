@@ -848,6 +848,8 @@ class Database(object):
         # finally save the new design document
         if len(design_doc) > empty_design_len:
             self.save(design_doc)
+        else:
+            raise NotFound('No views or filters found at directory', directory)
 
     def save_design(self, directory):
         """
