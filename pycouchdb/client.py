@@ -795,7 +795,7 @@ class Database(object):
             yuicompressor.run("--type", "js", "--charset", "UTF8", "-o", output_file_name, input_file_name)
             ff = os.fdopen(f)
             minified_content = ff.read()
-            ff.close(f)
+            ff.close()
             os.remove(output_file_name)
             return minified_content
 
