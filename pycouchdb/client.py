@@ -793,8 +793,9 @@ class Database(object):
         else:
             f, output_file_name = tempfile.mkstemp()
             yuicompressor.run("--type", "js", "--charset", "UTF8", "-o", output_file_name, input_file_name)
-            minified_content = os.fdopen(f).read()
-            os.close(f)
+            ff = os.fdopen(f)
+            minified_content = ff.read()
+            ff.close(f)
             os.remove(output_file_name)
             return minified_content
 
