@@ -2,10 +2,12 @@
 
 import os
 import json
+import tempfile
 import uuid
 import copy
 import mimetypes
 import warnings
+import yuicompressor
 
 from . import utils
 from . import feedreader
@@ -783,7 +785,20 @@ class Database(object):
         (resp, result) = self.resource("_changes").get(params=kwargs)
         return result['last_seq'], result['results']
 
-    def upload_design(self, directory):
+    @staticmethod
+    def _get_js(input_file_name, minify):
+        if not minify:
+            with open(input_file_name) as f:
+                return f.read()
+        else:
+            f, output_file_name = tempfile.mkstemp()
+            yuicompressor.run("--type", "js", "--charset", "UTF8", "-o", output_file_name, input_file_name)
+            minified_content = os.fdopen(f).read()
+            os.close(f)
+            os.remove(output_file_name)
+            return minified_content
+
+    def upload_design(self, directory, minify=True):
         """
         Compiles files in structured directory into a CouchDB design document and loads it into
         a specified database. Directory structure:
@@ -803,6 +818,7 @@ class Database(object):
         well as a filter called 'filter1'.
 
         :param directory: input structured directory
+        :param minify: (default: True) minify the input script (requires working JRE)
         """
 
         design_doc_name = os.path.basename(directory)
@@ -818,9 +834,7 @@ class Database(object):
             for filter_file_name in os.listdir(filters_dir):
                 if filter_file_name.endswith(JS_EXT):
                     filter_name = os.path.basename(filter_file_name).replace(JS_EXT, "")
-                    with open(os.path.join(filters_dir, filter_file_name)) as f:
-                        # actually load the filter contents
-                        design_doc['filters'][filter_name] = f.read()
+                    design_doc['filters'][filter_name] = self._get_js(os.path.join(filters_dir, filter_file_name), minify)
 
         # try to load views
         views_dir = os.path.join(directory, 'views')
@@ -836,14 +850,12 @@ class Database(object):
 
                 design_doc['views'][view_name] = {}
 
-                with open(map_file_name) as f:
-                    design_doc['views'][view_name]['map'] = f.read()
+                design_doc['views'][view_name]['map'] = self._get_js(map_file_name, minify)
 
                 reduce_file_name = os.path.join(views_dir, view_name, REDUCE_FILE_NAME)
                 # reduce.js is optional
                 if os.access(reduce_file_name, os.R_OK):
-                    with open(reduce_file_name) as f:
-                        design_doc['views'][view_name]['reduce'] = f.read()
+                    design_doc['views'][view_name]['reduce'] = self._get_js(reduce_file_name, minify)
 
         # finally save the new design document
         if len(design_doc) > empty_design_len:
