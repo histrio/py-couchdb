@@ -499,7 +499,6 @@ class UtilsTest(unittest.TestCase):
 
 
 class DesignTest(unittest.TestCase):
-
     def setUp(self):
         self.s = couchdb.Server(SERVER_URL)
         try:
@@ -542,6 +541,7 @@ class DesignTest(unittest.TestCase):
         os.rmdir(os.path.join(self.temp_dir, 'views'))
         os.rmdir(self.filter_dir)
         os.rmdir(self.temp_dir)
+
 
 if __name__ == '__main__':
     unittest.main()
