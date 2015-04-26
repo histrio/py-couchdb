@@ -13,7 +13,7 @@ class Resource(object):
                  credentials=None, authmethod="session", verify=False):
 
         self.base_url = base_url
-#        self.verify = verify
+        # self.verify = verify
 
         if not session:
             self.session = requests.session()
