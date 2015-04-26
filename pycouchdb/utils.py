@@ -20,7 +20,6 @@ else:
     string_type = unicode
     bytes_type = str
 
-
 json_encoder = json.JSONEncoder()
 
 
