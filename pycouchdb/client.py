@@ -828,6 +828,12 @@ class Database(object):
         design document with new view at /database/_design/designdocname/_view/viewname as
         well as a filter called 'filter1'.
 
+        The input files will be minified using an external YUICompressor prior to loading.
+        This requires a working JRE. Minified files are cached in the same directory
+        as original files as .file.min.js and recompiled when original is updated.
+
+        Minification is enabled by default and can be turned of using parameter minify.
+
         :param directory: input structured directory
         :param minify: (default: True) minify the input script (requires working JRE)
         """
