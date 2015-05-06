@@ -26,7 +26,8 @@ class _StreamResponse(object):
     """
     Proxy object for python-requests stream response.
 
-    See more on: http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
+    See more on:
+    http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
     """
     def __init__(self, response):
         self._response = response
@@ -108,7 +109,8 @@ class Server(object):
         Delete some database.
 
         :param name: database name
-        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a database does not exists
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
+            if a database does not exists
         """
 
         self.resource.delete(name)
@@ -118,7 +120,8 @@ class Server(object):
         Get a database instance.
 
         :param name: database name
-        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a database does not exists
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
+            if a database does not exists
 
         :returns: a :py:class:`~pycouchdb.client.Database` instance
         """
@@ -164,7 +167,8 @@ class Server(object):
         Create a database.
 
         :param name: database name
-        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if a database already exists
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict`
+            if a database already exists
         :returns: a :py:class:`~pycouchdb.client.Database` instance
         """
         (resp, result) = self.resource.put(name)
@@ -235,7 +239,8 @@ class Database(object):
         resource = self.resource(*_id_to_path(_id))
 
         (r, result) = resource.head()
-        (r, result) = resource.delete(params={"rev": r.headers["etag"].strip('"')})
+        (r, result) = resource.delete(
+            params={"rev": r.headers["etag"].strip('"')})
 
     def delete_bulk(self, docs, transaction=True):
         """
@@ -254,13 +259,14 @@ class Database(object):
             if "_deleted" not in doc:
                 doc["_deleted"] = True
 
-        data = utils.force_bytes(utils.to_json({"docs" : _docs}))
+        data = utils.force_bytes(utils.to_json({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
-        (resp, results) = self.resource.post("_bulk_docs", data=data, params=params)
+        (resp, results) = self.resource.post("_bulk_docs",
+            data=data, params=params)
 
         for result, doc in zip(results, _docs):
-          if "error" in result:
-            raise exp.Conflict("one or more docs are not saved")
+            if "error" in result:
+                raise exp.Conflict("one or more docs are not saved")
 
         return results
 
@@ -311,12 +317,13 @@ class Database(object):
             _doc['_id'] = uuid.uuid4().hex
 
         if batch:
-            params = { 'batch': 'ok' }
+            params = {'batch': 'ok'}
         else:
             params = {}
 
         data = utils.force_bytes(utils.to_json(_doc))
-        (resp, result) = self.resource(_doc['_id']).put(data=data, params=params)
+        (resp, result) = self.resource(_doc['_id']).put(data=data,
+            params=params)
 
         if resp.status_code == 409:
             raise exp.Conflict(result['reason'])
@@ -363,8 +370,10 @@ class Database(object):
         Execute a builtin view for get all documents.
 
         :param wrapper: wrap result into a specific class.
-        :param as_list: return a list of results instead of a default lazy generator.
-        :param flat: get a specific field from a object instead of a complete object.
+        :param as_list: return a list of results instead of a
+            default lazy generator.
+        :param flat: get a specific field from a object instead
+            of a complete object.
 
         .. versionadded: 1.4
            Add as_list parameter.
@@ -384,7 +393,8 @@ class Database(object):
 
         params = utils._encode_view_options(params)
         if data:
-            (resp, result) = self.resource.post("_all_docs", params=params, data=data)
+            (resp, result) = self.resource.post("_all_docs",
+                params=params, data=data)
         else:
             (resp, result) = self.resource.get("_all_docs", params=params)
 
@@ -429,7 +439,8 @@ class Database(object):
         """
         Execute compact over design view.
 
-        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
+            if a view does not exists.
         """
         (r, result) = self.resource("_compact", ddoc).post()
         return result
@@ -440,7 +451,8 @@ class Database(object):
 
         :param id:      document id
         :param status:  filter of reverion status, set empty to list all
-        :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a view does not exists.
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
+            if a view does not exists.
 
         :returns: generator object
         """
@@ -476,7 +488,8 @@ class Database(object):
 
         :param doc: document dict
         :param filename: name of attachment.
-        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict`
+            if save with wrong revision.
         :returns: doc
         """
 
@@ -534,11 +547,13 @@ class Database(object):
             Now returns a new document instead of modify the original.
 
         :param doc: document dict.
-        :param content: the content to upload, either a file-like object or bytes
+        :param content: the content to upload, either a file-like object or
+            bytes
         :param filename: the name of the attachment file; if omitted, this
                          function tries to get the filename from the file-like
                          object passed as the `content` argument value
-        :raises: :py:exc:`~pycouchdb.exceptions.Conflict` if save with wrong revision.
+        :raises: :py:exc:`~pycouchdb.exceptions.Conflict`
+            if save with wrong revision.
         :raises: ValueError
         :returns: doc
         """
@@ -571,7 +586,8 @@ class Database(object):
 
         :param name: name of the view (eg: docidname/viewname).
         :param wrapper: wrap result into a specific class.
-        :param flat: get a specific field from a object instead of a complete object.
+        :param flat: get a specific field from a object instead
+            of a complete object.
 
         .. versionadded: 1.4
 
@@ -596,14 +612,14 @@ class Database(object):
 
         return result[0] if len(result) > 0 else None
 
-
     def _query(self, resource, data=None, params=None, headers=None,
                flat=None, wrapper=None):
 
         if data is None:
             (resp, result) = resource.get(params=params, headers=headers)
         else:
-            (resp, result) = resource.post(data=data, params=params, headers=headers)
+            (resp, result) = resource.post(data=data, params=params,
+                headers=headers)
 
         if wrapper is None:
             wrapper = lambda row: row
@@ -623,8 +639,10 @@ class Database(object):
         :param reduce_func: unicode string with a reduce function definition.
         :param language: language used for define above functions.
         :param wrapper: wrap result into a specific class.
-        :param as_list: return a list of results instead of a default lazy generator.
-        :param flat: get a specific field from a object instead of a complete object.
+        :param as_list: return a list of results instead of a default
+            lazy generator.
+        :param flat: get a specific field from a object instead of a
+            complete object.
 
         .. versionchanged: 1.4
            Add as_list parameter.
@@ -657,8 +675,10 @@ class Database(object):
 
         :param name: name of the view (eg: docidname/viewname).
         :param wrapper: wrap result into a specific class.
-        :param as_list: return a list of results instead of a default lazy generator.
-        :param flat: get a specific field from a object instead of a complete object.
+        :param as_list: return a list of results instead of a
+            default lazy generator.
+        :param flat: get a specific field from a object instead
+            of a complete object.
 
         .. versionadded: 1.4
            Add as_list parameter.
@@ -678,7 +698,7 @@ class Database(object):
 
         params = utils._encode_view_options(params)
         result = self._query(self.resource(*path), wrapper=wrapper,
-                              flat=flat, params=params, data=data)
+            flat=flat, params=params, data=data)
 
         if as_list:
             return list(result)
@@ -708,7 +728,8 @@ class Database(object):
         # Possible options: "continuous", "longpoll"
         kwargs.setdefault("feed", "continuous")
 
-        (resp, result) = self.resource("_changes").get(params=kwargs, stream=True)
+        (resp, result) = self.resource("_changes").get(
+            params=kwargs, stream=True)
         try:
             for line in resp.iter_lines():
                 # ignore heartbeats
@@ -716,7 +737,7 @@ class Database(object):
                     reader.on_heartbeat()
                 else:
                     reader.on_message(json.loads(utils.force_text(line)))
-        except exp.FeedReaderExited as e:
+        except exp.FeedReaderExited:
             reader.on_close()
 
     def changes_list(self, **kwargs):
