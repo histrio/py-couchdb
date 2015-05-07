@@ -11,7 +11,8 @@ from pycouchdb.exceptions import Conflict, NotFound
 from pycouchdb import exceptions as exp
 
 SERVER_URL = 'http://admin:admin@localhost:5984/'
-SERVER_URL = 'http://localhost:5984/'
+SERVER_URL = 'http://127.0.0.1:5984/'
+
 
 class ServerTests(unittest.TestCase):
     @classmethod
@@ -28,13 +29,13 @@ class ServerTests(unittest.TestCase):
         self.assertNotEqual(len(self.s), 0)
 
     def test_create_delete_db(self):
-        db = self.s.create("testing2")
+        self.s.create("testing2")
         self.assertIn("testing2", self.s)
         self.s.delete("testing2")
         self.assertNotIn("testing2", self.s)
 
     def test_create(self):
-        db = self.s.create("testing1")
+        self.s.create("testing1")
         with self.assertRaises(Conflict):
             self.s.create("testing1")
         self.s.delete("testing1")
@@ -100,21 +101,21 @@ class DatabaseTests(unittest.TestCase):
         self.assertNotIn("_rev", doc)
 
     def test_save_02(self):
-        doc = self.db.save({'_id': 'kk', 'foo':'bar'})
+        doc = self.db.save({'_id': 'kk', 'foo': 'bar'})
         self.assertIn("_rev", doc)
         self.assertEqual(doc["_id"], "kk")
 
     def test_save_03(self):
-        doc1 = {'_id': 'kk2', 'foo':'bar'}
+        doc1 = {'_id': 'kk2', 'foo': 'bar'}
         doc2 = self.db.save(doc1)
-        doc3 = self.db.save(doc2)
+        self.db.save(doc2)
 
     def test_save_04(self):
-        doc = self.db.save({'_id': 'kk3', 'foo':'bar'})
+        doc = self.db.save({'_id': 'kk3', 'foo': 'bar'})
 
         del doc["_rev"]
         with self.assertRaises(Conflict):
-            doc2 = self.db.save(doc)
+            self.db.save(doc)
 
     def test_save_batch(self):
         doc = {"foo": "bar"}
@@ -122,26 +123,26 @@ class DatabaseTests(unittest.TestCase):
         self.assertIn("_id", doc2)
 
     def test_special_chars1(self):
-        text="Lürem ipsüm."
+        text = "Lürem ipsüm."
         self.db.save({"_id": "special1", "text": text})
 
         doc = self.db.get("special1")
         self.assertEqual(text, doc["text"])
 
     def test_special_chars2(self):
-        text="Mal sehen ob ich früh aufstehen mag."
+        text = "Mal sehen ob ich früh aufstehen mag."
         self.db.save({"_id": "special2", "text": text})
 
         doc = self.db.get("special2")
         self.assertEqual(text, doc["text"])
 
     def test_len(self):
-        doc1 = {'_id': 'kk4', 'foo':'bar'}
-        doc2 = self.db.save(doc1)
+        doc1 = {'_id': 'kk4', 'foo': 'bar'}
+        self.db.save(doc1)
         self.assertTrue(len(self.db) > 0)
 
     def test_delete(self):
-        doc = self.db.save({'_id': 'kk5', 'foo':'bar'})
+        self.db.save({'_id': 'kk5', 'foo': 'bar'})
         self.db.delete("kk5")
         self.assertEqual(len(self.db), 0)
 
@@ -150,22 +151,22 @@ class DatabaseTests(unittest.TestCase):
 
     def test_save_bulk_01(self):
         docs = self.db.save_bulk([
-            {"name":"Andrey"},
-            {"name":"Pepe"},
+            {"name": "Andrey"},
+            {"name": "Pepe"},
             {"name": "Alex"},
         ])
 
         self.assertEqual(len(docs), 3)
 
     def test_save_bulk_02(self):
-        docs = self.db.save_bulk([
+        self.db.save_bulk([
             {"_id": "kk6", "name": "Andrey"},
             {"_id": "kk7", "name": "Pepe"},
             {"_id": "kk8", "name": "Alex"},
         ])
 
         with self.assertRaises(Conflict):
-            docs = self.db.save_bulk([
+            self.db.save_bulk([
                 {"_id": "kk6", "name": "Andrey"},
                 {"_id": "kk7", "name": "Pepe"},
                 {"_id": "kk8", "name": "Alex"},
@@ -214,7 +215,7 @@ class DatabaseChangesTests(unittest.TestCase):
         last_seq, changes = self.db.changes_list()
         self.assertEqual(len(changes), 2)
 
-        _, changes = self.db.changes_list(since=last_seq-1)
+        _, changes = self.db.changes_list(since=last_seq - 1)
         self.assertEqual(len(changes), 1)
 
         self.db.delete(doc1)
@@ -245,12 +246,11 @@ class DatabaseQueryTests(unittest.TestCase):
             cls.s.delete("testing3")
             cls.db = cls.s.create('testing3')
 
-        docs = cls.db.save_bulk([
-            {"_id": "kk1", "name":"Andrey"},
-            {"_id": "kk2", "name":"Pepe"},
+        cls.db.save_bulk([
+            {"_id": "kk1", "name": "Andrey"},
+            {"_id": "kk2", "name": "Pepe"},
             {"_id": "kk3", "name": "Alex"},
         ])
-
 
         querydoc = {
             "_id": "_design/testing",
@@ -268,10 +268,9 @@ class DatabaseQueryTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.s.delete("testing3")
 
-
     def test_get_not_existent(self):
         with self.assertRaises(NotFound):
-            doc = self.db.get("kk4")
+            self.db.get("kk4")
 
     def test_contains(self):
         self.assertIn("kk1", self.db)
@@ -282,23 +281,23 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertEqual(len(result), 3)
 
     def test_all_02(self):
-        result = list(self.db.all(keys=['kk1','kk2']))
+        result = list(self.db.all(keys=['kk1', 'kk2']))
         self.assertEqual(len(result), 2)
 
     def test_all_03(self):
-        result = list(self.db.all(keys=['kk1','kk2'], flat="key"))
+        result = list(self.db.all(keys=['kk1', 'kk2'], flat="key"))
         self.assertEqual(result, ['kk1', 'kk2'])
 
     def test_all_04(self):
-        result = self.db.all(keys=['kk1','kk2'], flat="key")
+        result = self.db.all(keys=['kk1', 'kk2'], flat="key")
         self.assertIsInstance(result, types.GeneratorType)
 
     def test_all_05(self):
-        result = self.db.all(keys=['kk1','kk2'], flat="key", as_list=True)
+        result = self.db.all(keys=['kk1', 'kk2'], flat="key", as_list=True)
         self.assertIsInstance(result, list)
 
     def test_all_startkey_endkey(self):
-        result = list(self.db.all(startkey='kk1',endkey='kk2'))
+        result = list(self.db.all(startkey='kk1', endkey='kk2'))
         self.assertEqual(len(result), 2)
 
     def test_revisions_01(self):
@@ -315,7 +314,7 @@ class DatabaseQueryTests(unittest.TestCase):
 
     def test_revisions_02(self):
         with self.assertRaises(NotFound):
-            revisions = list(self.db.revisions("kk12"))
+            list(self.db.revisions("kk12"))
 
     def test_temporary_query_01(self):
         map_func = "function(doc) { emit(doc._id, doc.name); }"
@@ -340,7 +339,8 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertEqual(len(result), 1)
 
     def test_query_01(self):
-        result = self.db.query("testing/names", group='true', keys=['Andrey'], as_list=True)
+        result = self.db.query("testing/names", group='true',
+            keys=['Andrey'], as_list=True)
         self.assertEqual(len(result), 1)
 
     def test_query_02(self):
@@ -356,11 +356,13 @@ class DatabaseQueryTests(unittest.TestCase):
         self.assertEqual(result, 3)
 
     def test_query_05(self):
-        result = self.db.one("testing/names", flat="value", group='true', keys=['KK'])
+        result = self.db.one("testing/names", flat="value",
+            group='true', keys=['KK'])
         self.assertEqual(result, None)
 
     def test_query_06(self):
-        result = self.db.one("testing/names", flat="value", group='true', keys=['Andrey'])
+        result = self.db.one("testing/names", flat="value",
+            group='true', keys=['Andrey'])
         self.assertEqual(result, 1)
 
     def test_compact_view_01(self):
@@ -381,6 +383,7 @@ class DatabaseQueryTests(unittest.TestCase):
         with self.assertRaises(NotFound):
             self.db.compact_view("fooo")
 
+
 class DatabaseAttachmentsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -391,8 +394,8 @@ class DatabaseAttachmentsTest(unittest.TestCase):
             cls.s.delete("testing4")
             cls.db = cls.s.create('testing4')
 
-        docs = cls.db.save_bulk([
-            {"_id": "kk1", "name":"Andrey"},
+        cls.db.save_bulk([
+            {"_id": "kk1", "name": "Andrey"},
         ])
 
     @classmethod
