@@ -27,11 +27,11 @@ Get the Code
 ------------
 
 ``py-couchdb`` is actively developed on GitHub, where the code is
-`always available <https://github.com/niwibe/py-couchdb>`_.
+`always available <https://github.com/histrio/py-couchdb>`_.
 
 You can either clone the public repository::
 
-    git clone git://github.com/niwibe/py-couchdb.git
+    git clone git://github.com/histrio/py-couchdb.git
 
 Once you have a copy of the source, you can embed it in your Python package,
 or install it into your site-packages easily::
