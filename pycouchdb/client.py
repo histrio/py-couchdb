@@ -16,10 +16,37 @@ from .resource import Resource
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
 
-def _id_to_path(id):
-    if id[:1] == "_":
-        return id.split("/", 1)
-    return [id]
+def _id_to_path(_id):
+    if _id[:1] == "_":
+        return _id.split("/", 1)
+    return [_id]
+
+
+def _listen_feed(object, node, feed_reader, **kwargs):
+    if not callable(feed_reader):
+        raise exp.UnexpectedError("feed_reader must be callable or class")
+
+    if isinstance(feed_reader, feedreader.BaseFeedReader):
+        reader = feed_reader(object)
+    else:
+        reader = feedreader.SimpleFeedReader()(object, feed_reader)
+
+    # Possible options: "continuous", "longpoll"
+    kwargs.setdefault("feed", "continuous")
+
+    kwargs.setdefault("since", 1)
+
+    (resp, result) = object.resource(node).get(
+        params=kwargs, stream=True)
+    try:
+        for line in resp.iter_lines():
+            # ignore heartbeats
+            if not line:
+                reader.on_heartbeat()
+            else:
+                reader.on_message(json.loads(utils.force_text(line)))
+    except exp.FeedReaderExited:
+        reader.on_close()
 
 
 class _StreamResponse(object):
@@ -53,7 +80,7 @@ class Server(object):
     """
     Class that represents a couchdb connection.
 
-    :param verify: setup ssl verifycation.
+    :param verify: setup ssl verification.
     :param base_url: a full url to couchdb (can contain auth data).
     :param full_commit: If ``False``, couchdb not commits all data on a
                         request is finished.
@@ -65,18 +92,21 @@ class Server(object):
        Set basic auth method as default instead of session method.
 
     .. versionchanged: 1.5
-        Add verify parameter for setup ssl verifycaton
+        Add verify parameter for setup ssl verificaton
 
     """
 
     def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True,
                  authmethod="basic", verify=False):
 
-        self.base_url, credentials = utils._extract_credentials(base_url)
+        self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
                                  credentials=credentials,
                                  authmethod=authmethod,
                                  verify=verify)
+
+    def __repr__(self):
+        return '<CouchDB Server "{}">'.format(self.base_url)
 
     def __contains__(self, name):
         try:
@@ -193,6 +223,22 @@ class Server(object):
         (resp, result) = self.resource.post('_replicate', data=data)
         return result
 
+    def changes_feed(self, feed_reader, **kwargs):
+        """
+        Subscribe to changes feed of the whole CouchDB server.
+
+        Note: this method is blocking.
+
+
+        :param feed_reader: callable or :py:class:`~BaseFeedReader`
+                            instance
+
+        .. [Ref] http://docs.couchdb.org/en/1.6.1/api/server/common.html#db-updates
+        .. versionadded: 1.10
+        """
+        object = self
+        _listen_feed(object, "_db_updates", feed_reader, **kwargs)
+
 
 class Database(object):
     """
@@ -203,16 +249,26 @@ class Database(object):
         self.resource = resource
         self.name = name
 
-    def __contains__(self, id):
+    def __repr__(self):
+        return '<CouchDB Database "{}">'.format(self.name)
+
+    def __contains__(self, doc_id):
         try:
-            (resp, result) = self.resource.head(_id_to_path(id))
+            (resp, result) = self.resource.head(_id_to_path(doc_id))
             return resp.status_code < 206
         except exp.NotFound:
             return False
 
-    def __len__(self):
+    def config(self):
+        """
+        Get database status data such as document count, update sequence etc.
+        :return: dict
+        """
         (resp, result) = self.resource.get()
-        return result['doc_count']
+        return result
+
+    def __len__(self):
+        return self.config()['doc_count']
 
     def delete(self, doc_or_id):
         """
@@ -270,7 +326,7 @@ class Database(object):
 
         return results
 
-    def get(self, id, params=None, **kwargs):
+    def get(self, doc_id, params=None, **kwargs):
         """
         Get a document by id.
 
@@ -279,7 +335,7 @@ class Database(object):
             instead of params argument. **params** argument is now
             deprecated and will be deleted in future versions.
 
-        :param id: document id
+        :param doc_id: document id
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document
                  not exists
 
@@ -295,7 +351,7 @@ class Database(object):
 
         params.update(kwargs)
 
-        (resp, result) = self.resource(*_id_to_path(id)).get(params=params)
+        (resp, result) = self.resource(*_id_to_path(doc_id)).get(params=params)
         return result
 
     def save(self, doc, batch=False):
@@ -391,7 +447,7 @@ class Database(object):
             data = {"keys": params.pop("keys")}
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         if data:
             (resp, result) = self.resource.post("_all_docs",
                 params=params, data=data)
@@ -445,11 +501,11 @@ class Database(object):
         (r, result) = self.resource("_compact", ddoc).post()
         return result
 
-    def revisions(self, id, status='available', params=None, **kwargs):
+    def revisions(self, doc_id, status='available', params=None, **kwargs):
         """
         Get all revisions of one document.
 
-        :param id:      document id
+        :param doc_id:      document id
         :param status:  filter of reverion status, set empty to list all
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
             if a view does not exists.
@@ -468,16 +524,16 @@ class Database(object):
         if not params.get('revs_info'):
             params['revs_info'] = 'true'
 
-        resource = self.resource(id)
+        resource = self.resource(doc_id)
         (resp, result) = resource.get(params=params)
         if resp.status_code == 404:
-            raise exp.NotFound("docid {0} not found".format(id))
+            raise exp.NotFound("Document id `{0}` not found".format(doc_id))
 
         for rev in result['_revs_info']:
             if status and rev['status'] == status:
-                yield self.get(id, rev=rev['rev'])
+                yield self.get(doc_id, rev=rev['rev'])
             elif not status:
-                yield self.get(id, rev=rev['rev'])
+                yield self.get(doc_id, rev=rev['rev'])
 
     def delete_attachment(self, doc, filename):
         """
@@ -606,7 +662,7 @@ class Database(object):
         if data:
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         result = list(self._query(self.resource(*path), wrapper=wrapper,
                            flat=flat, params=params, data=data))
 
@@ -660,7 +716,7 @@ class Database(object):
         if reduce_func:
             data["reduce"] = reduce_func
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         data = utils.force_bytes(utils.to_json(data))
 
         result = self._query(self.resource("_temp_view"), params=params,
@@ -696,7 +752,7 @@ class Database(object):
         if data:
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         result = self._query(self.resource(*path), wrapper=wrapper,
             flat=flat, params=params, data=data)
 
@@ -706,7 +762,7 @@ class Database(object):
 
     def changes_feed(self, feed_reader, **kwargs):
         """
-        Subscribe to changes feed of couchdb.
+        Subscribe to changes feed of couchdb database.
 
         Note: this method is blocking.
 
@@ -717,28 +773,8 @@ class Database(object):
         .. versionadded: 1.5
         """
 
-        if not callable(feed_reader):
-            raise exp.UnexpectedError("feed_reader must be callable or class")
-
-        if isinstance(feed_reader, feedreader.BaseFeedReader):
-            reader = feed_reader(self)
-        else:
-            reader = feedreader.SimpleFeedReader()(self, feed_reader)
-
-        # Possible options: "continuous", "longpoll"
-        kwargs.setdefault("feed", "continuous")
-
-        (resp, result) = self.resource("_changes").get(
-            params=kwargs, stream=True)
-        try:
-            for line in resp.iter_lines():
-                # ignore heartbeats
-                if not line:
-                    reader.on_heartbeat()
-                else:
-                    reader.on_message(json.loads(utils.force_text(line)))
-        except exp.FeedReaderExited:
-            reader.on_close()
+        object = self
+        _listen_feed(object, "_changes", feed_reader, **kwargs)
 
     def changes_list(self, **kwargs):
         """

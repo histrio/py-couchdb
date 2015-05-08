@@ -51,7 +51,7 @@ class Resource(object):
         base_url = utils.urljoin(self.base_url, *path)
         return self.__class__(base_url, session=self.session)
 
-    def check_result(self, response, result):
+    def _check_result(self, response, result):
         try:
             error = result.get('error', None)
             reason = result.get('reason', None)
@@ -94,20 +94,20 @@ class Resource(object):
 
         if stream:
             result = None
-            self.check_result(response, result)
+            self._check_result(response, result)
         else:
             result = utils.as_json(response)
 
         if result is None:
-            return (response, result)
+            return response, result
 
         if isinstance(result, list):
             for res in result:
-                self.check_result(response, res)
+                self._check_result(response, res)
         else:
-            self.check_result(response, result)
+            self._check_result(response, result)
 
-        return (response, result)
+        return response, result
 
     def get(self, path=None, **kwargs):
         return self.request("GET", path, **kwargs)

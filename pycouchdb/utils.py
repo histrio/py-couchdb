@@ -24,7 +24,7 @@ else:
 json_encoder = json.JSONEncoder()
 
 
-def _extract_credentials(url):
+def extract_credentials(url):
     """
     Extract authentication (user name and password) credentials from the
     given URL.
@@ -122,7 +122,7 @@ def _path_from_name(name, type):
     return ['_design', design, type, name]
 
 
-def _encode_view_options(options):
+def encode_view_options(options):
     """
     Encode any items in the options dict that are sent as a JSON string to a
     view/list function.
