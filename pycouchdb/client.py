@@ -2,24 +2,31 @@
 
 import os
 import json
+import tempfile
 import uuid
 import copy
 import mimetypes
 import warnings
+import yuicompressor
 
 from . import utils
 from . import feedreader
 from . import exceptions as exp
+from pycouchdb.exceptions import NotFound
 from .resource import Resource
 
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
+JS_EXT = '.js'
+MAP_FILE_NAME = 'map' + JS_EXT
+REDUCE_FILE_NAME = 'reduce' + JS_EXT
 
-def _id_to_path(id):
-    if id[:1] == "_":
-        return id.split("/", 1)
-    return [id]
+
+def _id_to_path(ident):
+    if ident[:1] == "_":
+        return ident.split("/", 1)
+    return [ident]
 
 
 class _StreamResponse(object):
@@ -29,6 +36,7 @@ class _StreamResponse(object):
     See more on:
     http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
     """
+
     def __init__(self, response):
         self._response = response
 
@@ -53,7 +61,7 @@ class Server(object):
     """
     Class that represents a couchdb connection.
 
-    :param verify: setup ssl verifycation.
+    :param verify: setup ssl verification.
     :param base_url: a full url to couchdb (can contain auth data).
     :param full_commit: If ``False``, couchdb not commits all data on a
                         request is finished.
@@ -65,14 +73,14 @@ class Server(object):
        Set basic auth method as default instead of session method.
 
     .. versionchanged: 1.5
-        Add verify parameter for setup ssl verifycaton
+        Add verify parameter for setup ssl verificaton
 
     """
 
     def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True,
                  authmethod="basic", verify=False):
 
-        self.base_url, credentials = utils._extract_credentials(base_url)
+        self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
                                  credentials=credentials,
                                  authmethod=authmethod,
@@ -93,6 +101,9 @@ class Server(object):
     def __len__(self):
         (r, result) = self.resource.get('_all_dbs')
         return len(result)
+
+    def __str__(self):
+        return '<CouchDB Server "{}">'.format(self.base_url)
 
     def info(self):
         """
@@ -193,6 +204,39 @@ class Server(object):
         (resp, result) = self.resource.post('_replicate', data=data)
         return result
 
+    def changes_feed(self, feed_reader, **kwargs):
+        """
+        Subscribe to changes feed of the whole CouchDB server.
+
+        Note: this method is blocking.
+
+
+        :param feed_reader: callable or :py:class:`~BaseFeedReader`
+                            instance
+
+        .. [Ref] http://docs.couchdb.org/en/1.6.1/api/server/common.html#db-updates
+        .. versionadded: 1.10
+        """
+
+        if not callable(feed_reader):
+            raise exp.UnexpectedError("feed_reader must be callable or class")
+
+        if isinstance(feed_reader, feedreader.BaseFeedReader):
+            reader = feed_reader(self)
+        else:
+            reader = feedreader.SimpleFeedReader()(self, feed_reader)
+
+        # Possible options: "continuous", "longpoll"
+        kwargs.setdefault("feed", "continuous")
+        kwargs.setdefault("since", 1)
+
+        (resp, result) = self.resource("_db_updates").get(params=kwargs, stream=True)
+        try:
+            for line in resp.iter_lines(chunk_size=1):
+                reader.on_message(json.loads(utils.force_text(line)))
+        except exp.FeedReaderExited:
+            reader.on_close()
+
 
 class Database(object):
     """
@@ -210,9 +254,19 @@ class Database(object):
         except exp.NotFound:
             return False
 
-    def __len__(self):
+    def config(self):
+        """
+        Get database status data such as document count, update sequence etc.
+        :return: dict
+        """
         (resp, result) = self.resource.get()
-        return result['doc_count']
+        return result
+
+    def __len__(self):
+        return self.config()['doc_count']
+
+    def __str__(self):
+        return '<CouchDB Database "{}">'.format(self.name)
 
     def delete(self, doc_or_id):
         """
@@ -228,7 +282,6 @@ class Database(object):
                  wrong revision.
         """
 
-        _id = None
         if isinstance(doc_or_id, dict):
             if "_id" not in doc_or_id:
                 raise ValueError("Invalid document, missing _id attr")
@@ -270,16 +323,16 @@ class Database(object):
 
         return results
 
-    def get(self, id, params=None, **kwargs):
+    def get(self, ident, params=None, **kwargs):
         """
         Get a document by id.
 
         .. versionadded: 1.5
-            Now the prefered method to pass params is via **kwargs
+            Now the preferred method to pass params is via **kwargs
             instead of params argument. **params** argument is now
             deprecated and will be deleted in future versions.
 
-        :param id: document id
+        :param ident: document identifier
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound` if a document
                  not exists
 
@@ -295,7 +348,7 @@ class Database(object):
 
         params.update(kwargs)
 
-        (resp, result) = self.resource(*_id_to_path(id)).get(params=params)
+        (resp, result) = self.resource(*_id_to_path(ident)).get(params=params)
         return result
 
     def save(self, doc, batch=False):
@@ -391,7 +444,7 @@ class Database(object):
             data = {"keys": params.pop("keys")}
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         if data:
             (resp, result) = self.resource.post("_all_docs",
                 params=params, data=data)
@@ -445,7 +498,7 @@ class Database(object):
         (r, result) = self.resource("_compact", ddoc).post()
         return result
 
-    def revisions(self, id, status='available', params=None, **kwargs):
+    def revisions(self, ident, status='available', params=None, **kwargs):
         """
         Get all revisions of one document.
 
@@ -468,16 +521,16 @@ class Database(object):
         if not params.get('revs_info'):
             params['revs_info'] = 'true'
 
-        resource = self.resource(id)
+        resource = self.resource(ident)
         (resp, result) = resource.get(params=params)
         if resp.status_code == 404:
-            raise exp.NotFound("docid {0} not found".format(id))
+            raise exp.NotFound("docid {0} not found".format(ident))
 
         for rev in result['_revs_info']:
             if status and rev['status'] == status:
-                yield self.get(id, rev=rev['rev'])
+                yield self.get(ident, rev=rev['rev'])
             elif not status:
-                yield self.get(id, rev=rev['rev'])
+                yield self.get(ident, rev=rev['rev'])
 
     def delete_attachment(self, doc, filename):
         """
@@ -572,7 +625,7 @@ class Database(object):
         resource = self.resource(doc['_id'])
 
         (resp, result) = resource.put(filename, data=content,
-            params={'rev': doc['_rev']}, headers=headers)
+                                      params={'rev': doc['_rev']}, headers=headers)
 
         if resp.status_code < 206:
             return self.get(doc["_id"])
@@ -606,9 +659,9 @@ class Database(object):
         if data:
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         result = list(self._query(self.resource(*path), wrapper=wrapper,
-                           flat=flat, params=params, data=data))
+                                  flat=flat, params=params, data=data))
 
         return result[0] if len(result) > 0 else None
 
@@ -660,7 +713,7 @@ class Database(object):
         if reduce_func:
             data["reduce"] = reduce_func
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         data = utils.force_bytes(utils.to_json(data))
 
         result = self._query(self.resource("_temp_view"), params=params,
@@ -696,7 +749,7 @@ class Database(object):
         if data:
             data = utils.force_bytes(utils.to_json(data))
 
-        params = utils._encode_view_options(params)
+        params = utils.encode_view_options(params)
         result = self._query(self.resource(*path), wrapper=wrapper,
             flat=flat, params=params, data=data)
 
@@ -706,7 +759,7 @@ class Database(object):
 
     def changes_feed(self, feed_reader, **kwargs):
         """
-        Subscribe to changes feed of couchdb.
+        Subscribe to changes feed of couchdb database.
 
         Note: this method is blocking.
 
@@ -749,3 +802,113 @@ class Database(object):
 
         (resp, result) = self.resource("_changes").get(params=kwargs)
         return result['last_seq'], result['results']
+
+    @staticmethod
+    def _get_js(input_file_name, minify):
+        # make it simple if minify is disabled
+        if not minify:
+            with open(input_file_name) as f:
+                return f.read()
+
+        # try if cached minified data is not available
+        cache_file_name = '.' + os.path.basename(input_file_name).replace('.js', '.min.js')
+        cache_full_name = os.path.join(os.path.dirname(input_file_name), cache_file_name)
+
+        can_use_cache = False
+        if os.access(cache_full_name, os.R_OK):
+            if os.stat(cache_full_name).st_mtime > os.stat(input_file_name).st_mtime:
+                can_use_cache = True
+
+        if not can_use_cache:
+            # cache file is older, need to refresh
+            yuicompressor.run("--type", "js", "--charset", "UTF8", "-o", cache_full_name, input_file_name)
+
+        # return cached file contents
+        with open(cache_full_name) as f:
+            return f.read()
+
+    def upload_design(self, directory, minify=True):
+        """
+        Compiles files in structured directory into a CouchDB design document and loads it into
+        a specified database. Directory structure:
+
+        designdocname
+            |
+            +- 'views'
+            |    +- viewname
+            |    |   +- 'map.js'    (required)
+            |    .   +- 'reduce.js' (optional)
+            +- 'filters'
+            |    +- 'filter1.js'
+            .    .
+
+        Example: a call to db.design_loader('./designdocname') will result in loading a new
+        design document with new view at /database/_design/designdocname/_view/viewname as
+        well as a filter called 'filter1'.
+
+        The input files will be minified using an external YUICompressor prior to loading.
+        This requires a working JRE. Minified files are cached in the same directory
+        as original files as .file.min.js and recompiled when original is updated.
+
+        Minification is enabled by default and can be turned of using parameter minify.
+
+        :param directory: input structured directory
+        :param minify: (default: True) minify the input script (requires working JRE)
+        """
+
+        design_doc_name = os.path.basename(directory)
+
+        # prepare design document template
+        design_doc = {'_id': '_design/' + design_doc_name, 'language': 'javascript'}
+        empty_design_len = len(design_doc)
+
+        # first try filters
+        filters_dir = os.path.join(directory, 'filters')
+        if os.access(filters_dir, os.R_OK):
+            design_doc['filters'] = {}
+            for filter_file_name in os.listdir(filters_dir):
+
+                # skip cache files
+                if filter_file_name.startswith('.'):
+                    continue
+
+                if filter_file_name.endswith(JS_EXT):
+                    filter_name = os.path.basename(filter_file_name).replace(JS_EXT, "")
+                    design_doc['filters'][filter_name] = self._get_js(os.path.join(filters_dir, filter_file_name), minify)
+
+        # try to load views
+        views_dir = os.path.join(directory, 'views')
+        if os.access(filters_dir, os.R_OK):
+            design_doc['views'] = {}
+
+            for view_name in os.listdir(views_dir):
+
+                map_file_name = os.path.join(views_dir, view_name, MAP_FILE_NAME)
+                # map.js is required in each view
+                if not os.access(map_file_name, os.R_OK):
+                    raise NotFound('View directory {} has no file {}'.format(view_name, MAP_FILE_NAME))
+
+                design_doc['views'][view_name] = {}
+
+                design_doc['views'][view_name]['map'] = self._get_js(map_file_name, minify)
+
+                reduce_file_name = os.path.join(views_dir, view_name, REDUCE_FILE_NAME)
+                # reduce.js is optional
+                if os.access(reduce_file_name, os.R_OK):
+                    design_doc['views'][view_name]['reduce'] = self._get_js(reduce_file_name, minify)
+
+        # finally save the new design document
+        if len(design_doc) > empty_design_len:
+            self.save(design_doc)
+        else:
+            raise NotFound('No views or filters found at directory', directory)
+
+    def save_design(self, directory):
+        """
+        Save database's design document to a structured directory.
+
+        :param directory:
+        :return:
+        """
+        raise NotImplemented()
+

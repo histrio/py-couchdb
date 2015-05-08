@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 import requests
 
 from . import utils
-from . import exceptions
+from .exceptions import *
 
 
 class Resource(object):
@@ -13,7 +13,7 @@ class Resource(object):
                  credentials=None, authmethod="session", verify=False):
 
         self.base_url = base_url
-#        self.verify = verify
+        # self.verify = verify
 
         if not session:
             self.session = requests.session()
@@ -51,7 +51,7 @@ class Resource(object):
         base_url = utils.urljoin(self.base_url, *path)
         return self.__class__(base_url, session=self.session)
 
-    def check_result(self, response, result):
+    def _check_result(self, response, result):
         try:
             error = result.get('error', None)
             reason = result.get('reason', None)
@@ -62,14 +62,14 @@ class Resource(object):
         # This is here because couchdb can return http 201
         # but containing a list of conflict errors
         if error == 'conflict' or error == "file_exists":
-            raise exceptions.Conflict(reason or "Conflict")
+            raise Conflict(reason or "Conflict")
 
         if response.status_code > 205:
             if response.status_code == 404 or error == 'not_found':
-                raise exceptions.NotFound(reason or 'Not found')
+                raise NotFound(reason or 'Not found')
             elif error == 'bad_request':
-                raise exceptions.BadRequest(reason or "Bad request")
-            raise exceptions.GenericError(result)
+                raise BadRequest(reason or "Bad request")
+            raise GenericError(result)
 
     def request(self, method, path, params=None, data=None,
                 headers=None, stream=False, **kwargs):
@@ -94,20 +94,20 @@ class Resource(object):
 
         if stream:
             result = None
-            self.check_result(response, result)
+            self._check_result(response, result)
         else:
             result = utils.as_json(response)
 
         if result is None:
-            return (response, result)
+            return response, result
 
         if isinstance(result, list):
             for res in result:
-                self.check_result(response, res)
+                self._check_result(response, res)
         else:
-            self.check_result(response, result)
+            self._check_result(response, result)
 
-        return (response, result)
+        return response, result
 
     def get(self, path=None, **kwargs):
         return self.request("GET", path, **kwargs)

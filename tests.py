@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals
+import json
+import os
 
 import unittest
 import tempfile
@@ -12,6 +14,7 @@ from pycouchdb import exceptions as exp
 
 SERVER_URL = 'http://admin:admin@localhost:5984/'
 SERVER_URL = 'http://127.0.0.1:5984/'
+
 
 
 class ServerTests(unittest.TestCase):
@@ -494,10 +497,54 @@ class DatabaseAttachmentsTest(unittest.TestCase):
 
 
 class UtilsTest(unittest.TestCase):
-
     def test_quote(self):
         #
         self.assertEqual(couchdb.utils.quote('Š'), '%C5%A0')
+
+
+class DesignTest(unittest.TestCase):
+    def setUp(self):
+        self.s = couchdb.Server(SERVER_URL)
+        try:
+            self.db = self.s.create('testing_design')
+        except Conflict:
+            self.s.delete("testing_design")
+            self.db = self.s.create('testing_design')
+
+        self.db.save_bulk([
+            {"_id": "kk1", "name": "Andrey"},
+            {"_id": "kk2", "name": "Pepe"},
+            {"_id": "kk3", "name": "Alex"},
+        ])
+
+        self.temp_dir = tempfile.mkdtemp()
+        self.design_name = '_design/' + os.path.basename(self.temp_dir)
+
+    def test_upload(self):
+
+        self.view_dir = os.path.join(self.temp_dir, 'views', 'names')
+        os.makedirs(self.view_dir)
+        self.filter_dir = os.path.join(self.temp_dir, 'filters')
+        os.makedirs(self.filter_dir)
+        with open(os.path.join(self.view_dir, 'map.js'), 'w') as f:
+            f.write("function(doc) { emit(doc.name, 1); }")
+        with open(os.path.join(self.view_dir, 'reduce.js'), 'w') as f:
+            f.write("_sum")
+        with open(os.path.join(self.filter_dir, 'filter1.js'), 'w') as f:
+            f.write("function(doc,req) { return true; }")
+
+        self.db.upload_design(self.temp_dir)
+        self.assertIn('_id', self.db.get(self.design_name))
+        self.assertEqual(self.design_name, self.db.get(self.design_name)['_id'])
+
+    def tearDown(self):
+        os.remove(os.path.join(self.view_dir, 'map.js'))
+        os.remove(os.path.join(self.view_dir, 'reduce.js'))
+        os.remove(os.path.join(self.filter_dir, 'filter1.js'))
+        os.rmdir(self.view_dir)
+        os.rmdir(os.path.join(self.temp_dir, 'views'))
+        os.rmdir(self.filter_dir)
+        os.rmdir(self.temp_dir)
 
 
 if __name__ == '__main__':

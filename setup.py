@@ -44,5 +44,5 @@ setup(
         ],
     },
     cmdclass={"build_py": build_py},
-    install_requires=["requests"]
+    install_requires=["requests", "yuicompressor"]
 )
