@@ -2,6 +2,36 @@
 Changelog
 =========
 
+Version 1.12
+------------
+
+Date: 2015-03-02
+
+- Backward incompatibility: `all` method changes its semantics, the wrapper now
+  receives a complete result item and it is the responsibility of wrapper
+  to handle it. (thanks to @krisb78)
+- Bug fix in __contains__ method of Database class (thanks to @beezz)
+- Improved performance on changes_feed (thanks to @krisb78)
+
+
+Version 1.11
+------------
+
+Date: 2015-02-05
+
+- Remove default "since" parameter from `changes_feed` method. (by @krisb78)
+
+
+Version 1.10
+------------
+
+Date: 2015-01-29
+
+- Proper handling heartbeats on changes feed (by @krisb78)
+- Add batch option to save method (by @kravietz)
+- Fix unicode related problems on python 2.7 (by @bmihelac)
+
+
 Version 1.9
 -----------
 

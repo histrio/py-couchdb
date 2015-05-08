@@ -28,6 +28,14 @@ class BaseFeedReader(object):
         """
         pass
 
+    def on_heartbeat(self):
+        """
+        Callback method invoked when a hearbeat (empty line) is received
+        from the _changes stream. Override this to purge the reader's internal
+        buffers (if any) if it waited too long without receiving anything.
+        """
+        pass
+
 
 class SimpleFeedReader(BaseFeedReader):
     """

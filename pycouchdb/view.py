@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2013 Andrey Antukh <niwi@niwi.be>
+# Copyright (C) 2015 Andrey Antukh <niwi@niwi.be>
 # Copyright (C) 2007-2008 Christopher Lenz
 # All rights reserved.
 
@@ -152,7 +152,7 @@ def run(input=sys.stdin, output=sys.stdout):
 
 _VERSION = """%(name)s - CouchDB Python %(version)s
 
-Copyright (C) 2013 Andrey Antukh <niwi@niwi.be>
+Copyright (C) 2015 Andrey Antukh <niwi@niwi.be>
 Copyright (C) 2007 Christopher Lenz <cmlenz@gmx.de>
 """
 

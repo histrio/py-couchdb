@@ -39,7 +39,7 @@ class Resource(object):
             post_url = utils.urljoin(self.base_url, "_session")
             r = self.session.post(post_url, data=data)
             if r.status_code != 200:
-                raise AuthenticationFailed()
+                raise exceptions.AuthenticationFailed()
 
         elif method == "basic":
             self.session.auth = credentials

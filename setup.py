@@ -7,12 +7,17 @@ try:
 except ImportError:
     from distutils.command.build_py import build_py
 
+import pycouchdb
+VERSION = pycouchdb.__version__
+
 setup(
     name="pycouchdb",
-    url="https://github.com/niwibe/py-couchdb",
+    url="https://github.com/histrio/py-couchdb",
     author="Andrey Antukh",
     author_email="niwi@niwi.be",
-    version="1.9",
+    maintainer='Rinat Sabitov',
+    maintainer_email='rinat.sabitov@gmail.com',
+    version=VERSION,
     packages=[
         "pycouchdb",
     ],

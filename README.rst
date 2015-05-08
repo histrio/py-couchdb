@@ -2,8 +2,8 @@
 py-couchdb
 ==========
 
-.. image:: https://img.shields.io/travis/niwibe/py-couchdb.svg?style=flat
-    :target: https://travis-ci.org/niwibe/py-couchdb
+.. image:: https://travis-ci.org/histrio/py-couchdb.svg?branch=master
+    :target: https://travis-ci.org/histrio/py-couchdb
 
 .. image:: https://img.shields.io/pypi/v/pycouchdb.svg?style=flat
     :target: https://pypi.python.org/pypi/pycouchdb
@@ -14,8 +14,11 @@ py-couchdb
 
 Modern pure python CouchDB Client.
 
-Currently there are several libraries in python to connect to couchdb. **Why one more?** It's very simple. 
+Currently there are several libraries in python to connect to couchdb. **Why one more?** 
+It's very simple.
+
 All seems not be maintained, all libraries used standard Python libraries for http requests, and are not compatible with python3.
+
 
 Advantages of py-couchdb
 ^^^^^^^^^^^^^^^^^^^^^^^^
