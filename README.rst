@@ -12,7 +12,7 @@ py-couchdb
     :target: https://pypi.python.org/pypi/pycouchdb
 
 
-Modern pure python CouchDB Client.
+Modern pure python `CouchDB <https://couchdb.apache.org/>`_ Client.
 
 Currently there are several libraries in python to connect to couchdb. **Why one more?** 
 It's very simple.
@@ -48,6 +48,11 @@ To install py-couchdb, simply:
 .. code-block:: console
 
     pip install pycouchdb
+    
+Documentation
+^^^^^^^^^^^^^
+
+Documentation is available at http://pycouchdb.readthedocs.org.
 
 Test
 ^^^^
