@@ -34,8 +34,6 @@ def _listen_feed(object, node, feed_reader, **kwargs):
     # Possible options: "continuous", "longpoll"
     kwargs.setdefault("feed", "continuous")
 
-    kwargs.setdefault("since", 1)
-
     (resp, result) = object.resource(node).get(
         params=kwargs, stream=True)
     try:
