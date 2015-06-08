@@ -296,6 +296,11 @@ class DatabaseQueryTests(unittest.TestCase):
         result = self.db.all(keys=['kk1', 'kk2'], flat="key", as_list=True)
         self.assertIsInstance(result, list)
 
+    def test_all_404(self):
+        result = self.db.all(keys=['nonexisting'], as_list=True,
+                             include_docs='false')
+        self.assertIsInstance(result, list)
+
     def test_all_startkey_endkey(self):
         result = list(self.db.all(startkey='kk1', endkey='kk2'))
         self.assertEqual(len(result), 2)
