@@ -73,12 +73,17 @@ def urljoin(base, *path):
     >>> urljoin('http://example.org/', 'foo', 'bar')
     'http://example.org/foo/bar'
 
-    All slashes within a path part are escaped:
+    All slashes within a path part are escaped, except for "special" doc IDs
+    starting with "_", like "_design/mydesigndoc":
 
     >>> urljoin('http://example.org/', 'foo/bar')
     'http://example.org/foo%2Fbar'
     >>> urljoin('http://example.org/', 'foo', '/bar/')
     'http://example.org/foo/%2Fbar%2F'
+    >>> urljoin('http://example.org/', '_design/foobar')
+    'http://example.org/_design/foobar
+    >>> urljoin('http://example.org/', '_design/foo/bar')
+    'http://example.org/_design/foo%2Fbar
 
     >>> urljoin('http://example.org/', None) #doctest:+IGNORE_EXCEPTION_DETAIL
     Traceback (most recent call last):
@@ -88,6 +93,14 @@ def urljoin(base, *path):
     if base and base.endswith('/'):
         base = base[:-1]
     retval = [base]
+    
+    # handle "special" document names like "_design/foobar"
+    # this prevents url encoding like "_design%2Ffoobar" in this case
+    if len(path) > 0 and '/' in path[0] and path[0].startswith('_'):
+        slash_idx = path[0].find('/')
+        first_and_rest_part = [path[0][0:slash_idx], path[0][slash_idx+1:]]
+        first_and_rest_part.extend(path[1:])
+        path = first_and_rest_part
 
     # build the path
     path = '/'.join([''] + [quote(s) for s in path])
