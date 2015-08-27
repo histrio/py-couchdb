@@ -22,6 +22,7 @@ else:
 
 
 json_encoder = json.JSONEncoder()
+from urlparse import urljoin as _urljoin
 
 
 def extract_credentials(url):
@@ -29,11 +30,11 @@ def extract_credentials(url):
     Extract authentication (user name and password) credentials from the
     given URL.
 
-    >>> _extract_credentials('http://localhost:5984/_config/')
+    >>> extract_credentials('http://localhost:5984/_config/')
     ('http://localhost:5984/_config/', None)
-    >>> _extract_credentials('http://joe:secret@localhost:5984/_config/')
+    >>> extract_credentials('http://joe:secret@localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe', 'secret'))
-    >>> _extract_credentials('http://joe%40example.com:secret@'
+    >>> extract_credentials('http://joe%40example.com:secret@'
     ...                      'localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe@example.com', 'secret'))
     """
@@ -49,10 +50,8 @@ def extract_credentials(url):
     return urlunsplit(parts), credentials
 
 
-def quote(data, safe=b''):
-    if isinstance(data, string_type):
-        data = data.encode('utf-8')
-    return _quote(data, safe)
+def _join(head, tail):
+    return _urljoin(head.rstrip('/')+'/', tail.lstrip('/'))
 
 
 def urljoin(base, *path):
@@ -76,25 +75,11 @@ def urljoin(base, *path):
     All slashes within a path part are escaped:
 
     >>> urljoin('http://example.org/', 'foo/bar')
-    'http://example.org/foo%2Fbar'
+    'http://example.org/foo/bar'
     >>> urljoin('http://example.org/', 'foo', '/bar/')
-    'http://example.org/foo/%2Fbar%2F'
-
-    >>> urljoin('http://example.org/', None) #doctest:+IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    TypeError: argument 2 to map() must support iteration
+    'http://example.org/foo/bar/'
     """
-    if base and base.endswith('/'):
-        base = base[:-1]
-    retval = [base]
-
-    # build the path
-    path = '/'.join([''] + [quote(s) for s in path])
-    if path:
-        retval.append(path)
-
-    return ''.join(retval)
+    return reduce(_join, path, base)
 
 
 def as_json(response):
