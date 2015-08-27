@@ -13,6 +13,8 @@ if sys.version_info[0] == 3:
     string_type = str
     bytes_type = bytes
 
+    from functools import reduce
+
 else:
     from urllib import quote as _quote
     from urllib import unquote as _unquote
