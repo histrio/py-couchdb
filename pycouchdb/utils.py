@@ -8,6 +8,7 @@ if sys.version_info[0] == 3:
     from urllib.parse import quote as _quote
     from urllib.parse import unquote as _unquote
     from urllib.parse import urlunsplit, urlsplit
+    from urllib.parse import urljoin as _urljoin
 
     string_type = str
     bytes_type = bytes
@@ -16,13 +17,13 @@ else:
     from urllib import quote as _quote
     from urllib import unquote as _unquote
     from urlparse import urlunsplit, urlsplit
+    from urlparse import urljoin as _urljoin
 
     string_type = unicode
     bytes_type = str
 
 
 json_encoder = json.JSONEncoder()
-from urlparse import urljoin as _urljoin
 
 
 def extract_credentials(url):
