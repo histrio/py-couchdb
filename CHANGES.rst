@@ -2,6 +2,16 @@
 Changelog
 =========
 
+Version 1.13
+------------
+
+Date: 2015-08-27
+
+- Subscribing to changes feed of the whole CouchDB server. (thanks to @kravietz)
+- Removed default "since" parameter from `_listen_feed` method. (by @krisb78)
+- Disabled slash quoting for url parts. (thanks to @internaut)
+
+
 Version 1.12
 ------------
 
