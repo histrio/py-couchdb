@@ -5,10 +5,8 @@ import sys
 
 
 if sys.version_info[0] == 3:
-    from urllib.parse import quote as _quote
     from urllib.parse import unquote as _unquote
     from urllib.parse import urlunsplit, urlsplit
-    from urllib.parse import urljoin as _urljoin
 
     string_type = str
     bytes_type = bytes
@@ -16,13 +14,13 @@ if sys.version_info[0] == 3:
     from functools import reduce
 
 else:
-    from urllib import quote as _quote
     from urllib import unquote as _unquote
     from urlparse import urlunsplit, urlsplit
-    from urlparse import urljoin as _urljoin
 
     string_type = unicode
     bytes_type = str
+
+URLSPLITTER = '/'
 
 
 json_encoder = json.JSONEncoder()
@@ -54,7 +52,8 @@ def extract_credentials(url):
 
 
 def _join(head, tail):
-    return _urljoin(head.rstrip('/')+'/', tail.lstrip('/'))
+    parts = [head.rstrip(URLSPLITTER), tail.lstrip(URLSPLITTER)]
+    return URLSPLITTER.join(parts)
 
 
 def urljoin(base, *path):
@@ -75,12 +74,14 @@ def urljoin(base, *path):
     >>> urljoin('http://example.org/', 'foo', 'bar')
     'http://example.org/foo/bar'
 
-    All slashes within a path part are escaped:
-
     >>> urljoin('http://example.org/', 'foo/bar')
     'http://example.org/foo/bar'
+
     >>> urljoin('http://example.org/', 'foo', '/bar/')
     'http://example.org/foo/bar/'
+
+    >>> urljoin('http://example.com', 'org.couchdb.user:username')
+    'http://example.com/org.couchdb.user:username'
     """
     return reduce(_join, path, base)
 
