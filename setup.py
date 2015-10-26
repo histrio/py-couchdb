@@ -7,8 +7,6 @@ try:
 except ImportError:
     from distutils.command.build_py import build_py
 
-import pycouchdb
-VERSION = pycouchdb.__version__
 
 setup(
     name="pycouchdb",
@@ -17,7 +15,7 @@ setup(
     author_email="niwi@niwi.be",
     maintainer='Rinat Sabitov',
     maintainer_email='rinat.sabitov@gmail.com',
-    version=VERSION,
+    version='1.13',
     packages=[
         "pycouchdb",
     ],

@@ -5,20 +5,22 @@ import sys
 from collections import OrderedDict
 
 if sys.version_info[0] == 3:
-    from urllib.parse import quote as _quote
     from urllib.parse import unquote as _unquote
     from urllib.parse import urlunsplit, urlsplit
 
     string_type = str
     bytes_type = bytes
 
+    from functools import reduce
+
 else:
-    from urllib import quote as _quote
     from urllib import unquote as _unquote
     from urlparse import urlunsplit, urlsplit
 
     string_type = unicode
     bytes_type = str
+
+URLSPLITTER = '/'
 
 
 json_encoder = json.JSONEncoder()
@@ -29,11 +31,11 @@ def extract_credentials(url):
     Extract authentication (user name and password) credentials from the
     given URL.
 
-    >>> _extract_credentials('http://localhost:5984/_config/')
+    >>> extract_credentials('http://localhost:5984/_config/')
     ('http://localhost:5984/_config/', None)
-    >>> _extract_credentials('http://joe:secret@localhost:5984/_config/')
+    >>> extract_credentials('http://joe:secret@localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe', 'secret'))
-    >>> _extract_credentials('http://joe%40example.com:secret@'
+    >>> extract_credentials('http://joe%40example.com:secret@'
     ...                      'localhost:5984/_config/')
     ('http://localhost:5984/_config/', ('joe@example.com', 'secret'))
     """
@@ -49,10 +51,9 @@ def extract_credentials(url):
     return urlunsplit(parts), credentials
 
 
-def quote(data, safe=b''):
-    if isinstance(data, string_type):
-        data = data.encode('utf-8')
-    return _quote(data, safe)
+def _join(head, tail):
+    parts = [head.rstrip(URLSPLITTER), tail.lstrip(URLSPLITTER)]
+    return URLSPLITTER.join(parts)
 
 
 def urljoin(base, *path):
@@ -73,28 +74,16 @@ def urljoin(base, *path):
     >>> urljoin('http://example.org/', 'foo', 'bar')
     'http://example.org/foo/bar'
 
-    All slashes within a path part are escaped:
-
     >>> urljoin('http://example.org/', 'foo/bar')
-    'http://example.org/foo%2Fbar'
+    'http://example.org/foo/bar'
+
     >>> urljoin('http://example.org/', 'foo', '/bar/')
-    'http://example.org/foo/%2Fbar%2F'
+    'http://example.org/foo/bar/'
 
-    >>> urljoin('http://example.org/', None) #doctest:+IGNORE_EXCEPTION_DETAIL
-    Traceback (most recent call last):
-        ...
-    TypeError: argument 2 to map() must support iteration
+    >>> urljoin('http://example.com', 'org.couchdb.user:username')
+    'http://example.com/org.couchdb.user:username'
     """
-    if base and base.endswith('/'):
-        base = base[:-1]
-    retval = [base]
-
-    # build the path
-    path = '/'.join([''] + [quote(s) for s in path])
-    if path:
-        retval.append(path)
-
-    return ''.join(retval)
+    return reduce(_join, path, base)
 
 
 def as_json(response, use_ordered_dict=False):

@@ -13,6 +13,7 @@ install:
 
 script:
   - python tests.py
+  - python -m doctest -v pycouchdb/utils.py
 
 notifications:
   email:
