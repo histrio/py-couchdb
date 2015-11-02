@@ -1,8 +1,10 @@
+.. _views:
+
 Views in python
 ===============
 
-The pycouchdb package comes with a view server to allow you to write views in Python instead of JavaScript. 
-When pycouchdb is installed, it will install a script called couchpy that runs the view server. 
+The pycouchdb package comes with a view server to allow you to write views in Python instead of JavaScript.
+When pycouchdb is installed, it will install a script called couchpy that runs the view server.
 To enable this for your CouchDB server, add the following section to local.ini:
 
 .. code-block:: ini
@@ -11,7 +13,7 @@ To enable this for your CouchDB server, add the following section to local.ini:
     python3 = /path/to/couchpy
 
 
-After restarting CouchDB, the Futon view editor should show **python3** in the language pull-down menu. 
+After restarting CouchDB, the Futon view editor should show **python3** in the language pull-down menu.
 Here’s some sample view code to get you started:
 
 .. code-block:: python
@@ -22,4 +24,3 @@ Here’s some sample view code to get you started:
 
 .. note::
     The view server also works with python 2.7 and pypy.
-

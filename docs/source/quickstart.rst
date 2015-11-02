@@ -142,6 +142,26 @@ And this is a way to make a query using predefined views:
     [{'value': 1, 'key': 'Fooo'}]
 
 
+In order to make query with Python see :ref:`Views <views>` on how to configure
+CouchDB. And this is a way to make a query using predefined views with Python:
+
+.. code-block:: python
+
+    >>> _doc = {
+    ...    "_id": "_design/testing",
+    ...    "language": "python3",
+    ...    "views": {
+    ...        "names": {
+    ...            "map": "def fun(doc): yield doc.name, 1",
+    ...            "reduce": "def fun(k, v): return  sum(v)",
+    ...        }
+    ...    }
+    ...}
+    >>> doc = db.save(_doc)
+    >>> list(db.query("testing/names", group='true', language='python3'))
+    [{'value': 1, 'key': 'Fooo'}]
+
+
 Subscribe to a changes stream feed
 ----------------------------------
 
