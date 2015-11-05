@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 1.14
+------------
+
+Date: 2015-11-03
+
+Technical release: fixed improper package building bug
+
 Version 1.13
 ------------
 

@@ -2,7 +2,7 @@
 
 __author__ = "Andrey Antukh"
 __license__ = "BSD"
-__version__ = "1.13"
+__version__ = "1.14"
 __maintainer__ = "Rinat Sabitov"
 __email__ = "rinat.sabitov@gmail.com"
 __status__ = "Development"
