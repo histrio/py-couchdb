@@ -2,7 +2,11 @@
 
 from __future__ import print_function, unicode_literals
 
-import unittest
+try:
+    from unittest2 import TestCase
+except ImportError:
+    from unittest import TestCase
+
 import tempfile
 import types
 import pycouchdb as couchdb
@@ -14,7 +18,7 @@ SERVER_URL = 'http://admin:admin@localhost:5984/'
 SERVER_URL = 'http://127.0.0.1:5984/'
 
 
-class ServerTests(unittest.TestCase):
+class ServerTests(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
@@ -81,12 +85,12 @@ class ServerTests(unittest.TestCase):
         self.s.delete("testing2")
 
 
-class ResourceTest(unittest.TestCase):
+class ResourceTest(TestCase):
     pass
 
 
 
-class DatabaseTests(unittest.TestCase):
+class DatabaseTests(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = couchdb.Server(SERVER_URL)
@@ -197,7 +201,7 @@ class DatabaseTests(unittest.TestCase):
         self.assertTrue(self.db.compact())
 
 
-class DatabaseChangesTests(unittest.TestCase):
+class DatabaseChangesTests(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
@@ -241,7 +245,7 @@ class DatabaseChangesTests(unittest.TestCase):
         self.db.delete(doc2)
 
 
-class DatabaseQueryTests(unittest.TestCase):
+class DatabaseQueryTests(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = couchdb.Server(SERVER_URL)
@@ -394,7 +398,7 @@ class DatabaseQueryTests(unittest.TestCase):
             self.db.compact_view("fooo")
 
 
-class DatabaseAttachmentsTest(unittest.TestCase):
+class DatabaseAttachmentsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.s = couchdb.Server(SERVER_URL)
@@ -502,6 +506,3 @@ class DatabaseAttachmentsTest(unittest.TestCase):
         self.assertIn("_attachments", doc)
         self.assertIn("sample.txt", doc["_attachments"])
 
-
-if __name__ == '__main__':
-    unittest.main()
