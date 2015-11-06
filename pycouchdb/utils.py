@@ -96,14 +96,15 @@ def as_json(response):
     return None
 
 
-def to_json(doc):
-    return json.dumps(doc)
-
-
 def _path_from_name(name, type):
     """
     Expand a 'design/foo' style name to its full path as a list of
     segments.
+
+    >>> _path_from_name("_design/test", '_view')
+    ['_design', 'test']
+    >>> _path_from_name("design/test", '_view')
+    ['_design', 'design', '_view', 'test']
     """
     if name.startswith('_'):
         return name.split('/')
@@ -115,6 +116,16 @@ def encode_view_options(options):
     """
     Encode any items in the options dict that are sent as a JSON string to a
     view/list function.
+
+    >>> opts = {'key': 'foo', "notkey":"bar"}
+    >>> res = encode_view_options(opts)
+    >>> res["key"], res["notkey"]
+    ('"foo"', 'bar')
+
+    >>> opts = {'startkey': 'foo', "endkey":"bar"}
+    >>> res = encode_view_options(opts)
+    >>> res['startkey'], res['endkey']
+    ('"foo"', '"bar"')
     """
     retval = {}
 

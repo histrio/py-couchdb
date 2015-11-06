@@ -16,9 +16,7 @@ setup(
     maintainer='Rinat Sabitov',
     maintainer_email='rinat.sabitov@gmail.com',
     version='1.14.1',
-    packages=[
-        "pycouchdb",
-    ],
+    packages=["pycouchdb", ],
     description=description.strip(),
     zip_safe=False,
     include_package_data=True,
@@ -42,5 +40,8 @@ setup(
         ],
     },
     cmdclass={"build_py": build_py},
-    install_requires=["requests"]
+    install_requires=["requests"],
+
+    test_suite='test',
+    tests_require=['mock', 'nose', 'responses'],
 )

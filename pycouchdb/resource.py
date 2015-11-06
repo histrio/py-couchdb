@@ -2,6 +2,7 @@
 
 from __future__ import unicode_literals
 
+import json
 import requests
 
 from . import utils
@@ -34,7 +35,7 @@ class Resource(object):
 
         if method == "session":
             data = {"name": credentials[0], "password": credentials[1]}
-            data = utils.force_bytes(utils.to_json(data))
+            data = utils.force_bytes(json.dumps(data))
 
             post_url = utils.urljoin(self.base_url, "_session")
             r = self.session.post(post_url, data=data)

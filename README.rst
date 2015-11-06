@@ -60,4 +60,4 @@ To test py-couchdb, simply run:
 
 .. code-block:: console
 
-   python tests.py
+   nosetests --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest

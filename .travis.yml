@@ -1,19 +1,18 @@
 language: python
 
 services:
-  - couchdb
+- couchdb
 
 python:
-  - "3.4"
-  - "3.3"
-  - "2.7"
+  - 2.6
+  - 2.7
+  - 3.2
+  - 3.3
+  - 3.4
+  - pypy
+  - pypy3
 
-install:
-  - pip install requests --use-mirrors
 
-script:
-  - python tests.py
-  - python -m doctest -v pycouchdb/utils.py
 
 notifications:
   email:
@@ -21,3 +20,20 @@ notifications:
       - rinat.sabitov@gmail.com
     on_success: change
     on_failure: change
+
+before_install:
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.2' ]];
+    then pip install "coverage<4"; else
+    pip install coverage;
+    fi
+  - pip install coveralls
+
+install:
+  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
+  - pip install requests mock requests nose --use-mirrors
+
+script:
+  - nosetests -vv --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest
+
+after_success:
+    - coveralls
