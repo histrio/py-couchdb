@@ -11,6 +11,9 @@ py-couchdb
 .. image:: https://img.shields.io/pypi/dm/pycouchdb.svg?style=flat
     :target: https://pypi.python.org/pypi/pycouchdb
 
+.. image:: https://coveralls.io/repos/histrio/py-couchdb/badge.svg?branch=master&service=github 
+    :target: https://coveralls.io/github/histrio/py-couchdb?branch=master 
+
 
 Modern pure python `CouchDB <https://couchdb.apache.org/>`_ Client.
 
