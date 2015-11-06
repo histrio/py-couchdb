@@ -15,7 +15,7 @@ setup(
     author_email="niwi@niwi.be",
     maintainer='Rinat Sabitov',
     maintainer_email='rinat.sabitov@gmail.com',
-    version='1.14',
+    version='1.14.1',
     packages=[
         "pycouchdb",
     ],

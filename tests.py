@@ -81,6 +81,11 @@ class ServerTests(unittest.TestCase):
         self.s.delete("testing2")
 
 
+class ResourceTest(unittest.TestCase):
+    pass
+
+
+
 class DatabaseTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):

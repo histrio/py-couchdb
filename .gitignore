@@ -38,3 +38,5 @@ target/
 .idea/
 *.ipr
 *.iws
+
+.env/
