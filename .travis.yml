@@ -29,7 +29,7 @@ before_install:
   - pip install coveralls
 
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install unittest2; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install importlib unittest2; fi
   - pip install mock requests nose responses
 
 script:
