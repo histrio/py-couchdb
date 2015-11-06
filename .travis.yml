@@ -12,8 +12,6 @@ python:
   - pypy
   - pypy3
 
-
-
 notifications:
   email:
     recipients:
@@ -26,11 +24,10 @@ before_install:
     then pip install "coverage<4"; else
     pip install coverage;
     fi
-  - pip install coveralls
-
-install:
-  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; then pip install importlib unittest2; fi
-  - pip install mock requests nose responses
+  - if [[ $TRAVIS_PYTHON_VERSION == 2.6 ]]; 
+    then pip install importlib unittest2; 
+    fi
+  - pip install mock requests nose responses coveralls
 
 script:
   - nosetests -vv --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest
