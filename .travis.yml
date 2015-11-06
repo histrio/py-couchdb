@@ -19,7 +19,7 @@ notifications:
     on_success: change
     on_failure: change
 
-before_install:
+install:
   - if [[ $TRAVIS_PYTHON_VERSION == '3.2' ]];
     then pip install "coverage<4"; else
     pip install coverage;
