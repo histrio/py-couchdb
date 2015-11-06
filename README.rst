@@ -63,4 +63,4 @@ To test py-couchdb, simply run:
 
 .. code-block:: console
 
-   nosetests --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest
+   nosetests --cover-package=pycouchdb --with-doctest
