@@ -34,11 +34,6 @@ setup(
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
     ],
-    entry_points={
-        "console_scripts": [
-            "couchpy = pycouchdb.view:main"
-        ],
-    },
     cmdclass={"build_py": build_py},
     install_requires=["requests"],
 
