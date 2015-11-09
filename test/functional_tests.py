@@ -9,7 +9,7 @@ Description:
 import responses
 import pycouchdb
 
-from pycouchdb.exceptions import Conflict
+from pycouchdb.exceptions import Conflict, BadRequest
 from nose.tools import raises
 
 
@@ -60,3 +60,11 @@ class TestServer:
                     content_type="application/json",
                     body='{"error":"file_exists"}', status=409)
             self.server.create("testing1")
+
+    @raises(BadRequest)
+    def test_bad_request(self):
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, "http://example.com/",
+                    content_type="application/json",
+                    body='{"error":"bad_request"}', status=400)
+            self.server.info()
