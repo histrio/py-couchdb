@@ -387,13 +387,14 @@ class Database(object):
 
         return _doc
 
-    def save_bulk(self, docs, transaction=True):
+    def save_bulk(self, docs, try_setting_id=False, transaction=True):
         """
         Save a bulk of documents.
 
         .. versionchanged:: 1.2
             Now returns a new document list instead of modify the original.
 
+        :param try_setting_id: if ``True``, we loop through docs and generate/set an id in each doc if none exists
         :param docs: list of docs
         :param transaction: if ``True``, couchdb do a insert in transaction
                             model.
@@ -402,10 +403,11 @@ class Database(object):
 
         _docs = copy.deepcopy(docs)
 
-        # Insert _id field if it not exists
-        for doc in _docs:
-            if "_id" not in doc:
-                doc["_id"] = uuid.uuid4().hex
+        # Insert _id field if it not exists and try_setting_id is true
+        if try_setting_id:
+            for doc in _docs:
+                if "_id" not in doc:
+                    doc["_id"] = uuid.uuid4().hex
 
         data = utils.force_bytes(json.dumps({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
