@@ -21,13 +21,8 @@ notifications:
 
 install:
   - pip install -U pip
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.2' ]];
-    then pip install "coverage<4"; else
-    pip install coverage;
-    fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; 
-    then pip install -U unittest2; 
-    fi
+  - pip install coverage;
+  - pip install -U unittest2; 
   - pip install mock requests nose responses coveralls
 
 script:
