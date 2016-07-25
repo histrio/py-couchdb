@@ -20,8 +20,9 @@ notifications:
     on_failure: change
 
 install:
+  - pip install "pip<8.0.0" 
   - pip install coverage;
-  - pip install -U unittest2; 
+  - pip install unittest2; 
   - pip install mock requests nose responses coveralls
 
 script:
