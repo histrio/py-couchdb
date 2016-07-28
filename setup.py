@@ -36,7 +36,12 @@ setup(
     ],
     cmdclass={"build_py": build_py},
     install_requires=["requests"],
-
+    entry_points={
+        'console_scripts': [
+            'couchdb-dump = pycouchdb.backup:dump',
+            'couchdb-restore = pycouchdb.backup:restore',
+        ],
+    },
     test_suite='test',
     tests_require=['mock', 'nose', 'responses'],
 )

@@ -9,18 +9,24 @@ from . import utils
 from . import exceptions
 
 
+class CouchDBSession(requests.Session):
+
+    def __init__(self, *args, **kwargs):
+        super(CouchDBSession, self).__init__(*args, **kwargs)
+        self.headers.update({
+            "accept": "application/json",
+            "content-type": "application/json"
+        })
+
+
 class Resource(object):
     def __init__(self, base_url, full_commit=True, session=None,
                  credentials=None, authmethod="session", verify=False):
 
         self.base_url = base_url
-#        self.verify = verify
 
         if not session:
-            self.session = requests.session()
-
-            self.session.headers.update({"accept": "application/json",
-                                         "content-type": "application/json"})
+            self.session = CouchDBSession()
             self._authenticate(credentials, authmethod)
 
             if not full_commit:

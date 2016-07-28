@@ -57,8 +57,8 @@ class TestServer:
             rsps.add(responses.HEAD, "http://example.com/testing1")
             self.server.create("testing1")
             rsps.add(responses.PUT, "http://example.com/testing1",
-                    content_type="application/json",
-                    body='{"error":"file_exists"}', status=409)
+                content_type="application/json",
+                body='{"error":"file_exists"}', status=409)
             self.server.create("testing1")
 
     @raises(BadRequest)
