@@ -265,6 +265,11 @@ class Database(object):
         (resp, result) = self.resource.get()
         return result
 
+    def __nonzero__(self):
+        """Is the database available"""
+        resp, _ = self.resource.head()
+        return resp.status_code == 200
+
     def __len__(self):
         return self.config()['doc_count']
 
