@@ -4,6 +4,7 @@ import os
 import json
 import uuid
 import copy
+import logging
 import mimetypes
 import warnings
 
@@ -11,6 +12,9 @@ from . import utils
 from . import feedreader
 from . import exceptions as exp
 from .resource import Resource
+
+
+logger = logging.getLogger(__name__)
 
 
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
@@ -34,8 +38,14 @@ def _listen_feed(object, node, feed_reader, **kwargs):
     # Possible options: "continuous", "longpoll"
     kwargs.setdefault("feed", "continuous")
 
+    heartbeat = int(kwargs.get('heartbeat') or 0)
+
+    timeout = (heartbeat / 1000.0) + reader.HEARTBEAT_TOLERANCE
+
+    logger.info('Listening to _changes, timeout set to %f', timeout)
+
     (resp, result) = object.resource(node).get(
-        params=kwargs, stream=True)
+        params=kwargs, stream=True, timeout=timeout)
     try:
         for line in resp.iter_lines():
             # ignore heartbeats

@@ -6,6 +6,13 @@ class BaseFeedReader(object):
     Base interface class for changes feed reader.
     """
 
+    # The number of seconds we should keep waiting for data since the last
+    # change or heartbeat. If nothing is received HEARBEAT_TOLERANCE seconds
+    # the request for _changes will time out.
+    # We're setting this to twice the default timeout and hearbeat value
+    # of couchdb.
+    HEARTBEAT_TOLERANCE = 120
+
     def __call__(self, db):
         self.db = db
         return self
