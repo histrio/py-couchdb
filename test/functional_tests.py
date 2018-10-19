@@ -56,15 +56,17 @@ class TestServer:
             rsps.add(responses.PUT, "http://example.com/testing1")
             rsps.add(responses.HEAD, "http://example.com/testing1")
             self.server.create("testing1")
+
+        with responses.RequestsMock() as rsps:
             rsps.add(responses.PUT, "http://example.com/testing1",
-                    content_type="application/json",
-                    body='{"error":"file_exists"}', status=409)
+                     content_type="application/json",
+                     body='{"error":"file_exists"}', status=409)
             self.server.create("testing1")
 
     @raises(BadRequest)
     def test_bad_request(self):
         with responses.RequestsMock() as rsps:
             rsps.add(responses.GET, "http://example.com/",
-                    content_type="application/json",
-                    body='{"error":"bad_request"}', status=400)
+                     content_type="application/json",
+                     body='{"error":"bad_request"}', status=400)
             self.server.info()

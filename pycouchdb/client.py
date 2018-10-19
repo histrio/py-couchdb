@@ -160,12 +160,10 @@ class Server(object):
         db = Database(self.resource(name), name)
         return db
 
-    def config(self):
-        """
-        Get a current config data.
-        """
-        (resp, result) = self.resource.get("_config")
-        return result
+    # TODO: Config in 2.0 are applicable for nodes only
+    # TODO: Reimplement when nodes endpoint will be ready
+    # def config(self):
+    #     pass
 
     def version(self):
         """
@@ -174,21 +172,11 @@ class Server(object):
         (resp, result) = self.resource.get()
         return result["version"]
 
-    def stats(self, name=None):
-        """
-        Get runtime stats.
+    # TODO: Stats in 2.0 are applicable for nodes only
+    # TODO: Reimplement when nodes endpoint will be ready
+    # def stats(self, name=None):
+    #     pass
 
-        :param name: if is not None, get stats identified by a name.
-        :returns: dict
-        """
-
-        if not name:
-            (resp, result) = self.resource.get("_stats")
-            return result
-
-        resource = self.resource("_stats", "couchdb")
-        (r, result) = resource.get(name)
-        return result['couchdb'][name]
 
     def create(self, name):
         """
@@ -209,8 +197,8 @@ class Server(object):
 
         .. versionadded:: 1.3
 
-        :param source: URL to the source database
-        :param target: URL to the target database
+        :param source: full URL to the source database
+        :param target: full URL to the target database
         """
 
         data = {'source': source, 'target': target}
@@ -320,8 +308,8 @@ class Database(object):
 
         data = utils.force_bytes(json.dumps({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
-        (resp, results) = self.resource.post("_bulk_docs",
-            data=data, params=params)
+        (resp, results) = self.resource.post(
+            "_bulk_docs", data=data, params=params)
 
         for result, doc in zip(results, _docs):
             if "error" in result:
@@ -381,8 +369,8 @@ class Database(object):
             params = {}
 
         data = utils.force_bytes(json.dumps(_doc))
-        (resp, result) = self.resource(_doc['_id']).put(data=data,
-            params=params)
+        (resp, result) = self.resource(_doc['_id']).put(
+            data=data, params=params)
 
         if resp.status_code == 409:
             raise exp.Conflict(result['reason'])
@@ -455,8 +443,8 @@ class Database(object):
 
         params = utils.encode_view_options(params)
         if data:
-            (resp, result) = self.resource.post("_all_docs",
-                params=params, data=data)
+            (resp, result) = self.resource.post(
+                "_all_docs", params=params, data=data)
         else:
             (resp, result) = self.resource.get("_all_docs", params=params)
 
@@ -511,8 +499,8 @@ class Database(object):
         """
         Get all revisions of one document.
 
-        :param doc_id:      document id
-        :param status:  filter of reverion status, set empty to list all
+        :param doc_id: document id
+        :param status: filter of revision status, set empty to list all
         :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
             if a view does not exists.
 
@@ -633,8 +621,8 @@ class Database(object):
         headers = {"Content-Type": content_type}
         resource = self.resource(doc['_id'])
 
-        (resp, result) = resource.put(filename, data=content,
-            params={'rev': doc['_rev']}, headers=headers)
+        (resp, result) = resource.put(
+            filename, data=content, params={'rev': doc['_rev']}, headers=headers)
 
         if resp.status_code < 206:
             return self.get(doc["_id"])
@@ -643,7 +631,7 @@ class Database(object):
 
     def one(self, name, flat=None, wrapper=None, **kwargs):
         """
-        Execute a design document view query and returns a firts
+        Execute a design document view query and returns a first
         result.
 
         :param name: name of the view (eg: docidname/viewname).
@@ -670,7 +658,7 @@ class Database(object):
 
         params = utils.encode_view_options(params)
         result = list(self._query(self.resource(*path), wrapper=wrapper,
-                           flat=flat, params=params, data=data))
+                      flat=flat, params=params, data=data))
 
         return result[0] if len(result) > 0 else None
 
@@ -680,8 +668,8 @@ class Database(object):
         if data is None:
             (resp, result) = resource.get(params=params, headers=headers)
         else:
-            (resp, result) = resource.post(data=data, params=params,
-                headers=headers)
+            (resp, result) = resource.post(
+                data=data, params=params, headers=headers)
 
         if wrapper is None:
             wrapper = lambda row: row
@@ -692,44 +680,6 @@ class Database(object):
         for row in result["rows"]:
             yield wrapper(row)
 
-    def temporary_query(self, map_func, reduce_func=None, language='javascript',
-                        wrapper=None, as_list=False, **kwargs):
-        """
-        Execute a temporary view.
-
-        :param map_func: unicode string with a map function definition.
-        :param reduce_func: unicode string with a reduce function definition.
-        :param language: language used for define above functions.
-        :param wrapper: wrap result into a specific class.
-        :param as_list: return a list of results instead of a default
-            lazy generator.
-        :param flat: get a specific field from a object instead of a
-            complete object.
-
-        .. versionchanged: 1.4
-           Add as_list parameter.
-           Add flat parameter.
-
-        :returns: generator object
-        """
-        params = copy.copy(kwargs)
-
-        data = {'map': map_func, 'language': language}
-
-        if "keys" in params:
-            data["keys"] = params.pop("keys")
-
-        if reduce_func:
-            data["reduce"] = reduce_func
-
-        params = utils.encode_view_options(params)
-        data = utils.force_bytes(json.dumps(data))
-
-        result = self._query(self.resource("_temp_view"), params=params,
-                             data=data, wrapper=wrapper)
-        if as_list:
-            return list(result)
-        return result
 
     def query(self, name, wrapper=None, flat=None, as_list=False, **kwargs):
         """
@@ -760,7 +710,7 @@ class Database(object):
 
         params = utils.encode_view_options(params)
         result = self._query(self.resource(*path), wrapper=wrapper,
-            flat=flat, params=params, data=data)
+                             flat=flat, params=params, data=data)
 
         if as_list:
             return list(result)

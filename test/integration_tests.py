@@ -23,14 +23,32 @@ class ServerTests(TestCase):
     def setUpClass(cls):
         cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
 
+    def setUp(self):
+        for db in self.s:
+            self.s.delete(db)
+        try:
+            self.s.create("_users")
+        except Conflict:
+            pass
+
     def test_contains(self):
-        self.assertIn("_users", self.s)
+        self.s.create("testing5")
+        self.assertIn("testing5", self.s)
+        self.s.delete("testing5")
+        self.assertNotIn("testing5", self.s)
 
     def test_iter(self):
-        self.assertNotEqual(len(list(self.s)), 0)
+        self.assertEqual(list(self.s), ['_users',])
+        self.s.create("testing3")
+        self.s.create("testing4")
+        self.assertEqual(list(self.s), ['_users', 'testing3', 'testing4'])
 
     def test_len(self):
-        self.assertNotEqual(len(self.s), 0)
+        self.assertEqual(len(self.s), 1)
+        self.s.create("testing3")
+        self.assertEqual(len(self.s), 2)
+        self.s.delete("testing3")
+        self.assertEqual(len(self.s), 1)
 
     def test_create_delete_db(self):
         self.s.create("testing2")
@@ -44,13 +62,9 @@ class ServerTests(TestCase):
             self.s.create("testing1")
         self.s.delete("testing1")
 
-    def test_stats_01(self):
-        stats = self.s.stats()
-        self.assertIn("httpd_status_codes", stats)
-
-    def test_stats_02(self):
-        stats = self.s.stats("httpd_status_codes")
-        self.assertIn("description", stats)
+    # TODO: Implement when nodes endpoint will be ready
+    # def test_stats_01(self):
+        # pass
 
     def test_version(self):
         version = self.s.version()
@@ -60,9 +74,9 @@ class ServerTests(TestCase):
         data = self.s.info()
         self.assertIn("version", data)
 
-    def test_config(self):
-        data = self.s.config()
-        self.assertIn("view_compaction", data)
+    # TODO: Implement when nodes endpoint will be ready
+    # def test_config(self):
+    #     pass
 
     def test_replicate(self):
         db1 = self.s.create("testing1")
@@ -70,7 +84,7 @@ class ServerTests(TestCase):
         db1.save({'_id': '1', 'title': 'hello'})
         self.assertEqual(len(db1), 1)
         self.assertEqual(len(db2), 0)
-        self.s.replicate("testing1", "testing2")
+        self.s.replicate("http://127.0.0.1:5984/testing1", "http://127.0.0.1:5984/testing2")
         self.assertEqual(len(db1), 1)
         self.assertEqual(len(db2), 1)
         self.s.delete("testing1")
@@ -78,16 +92,17 @@ class ServerTests(TestCase):
 
     def test_replicate_create(self):
         self.s.create('testing1')
-        self.assertNotIn("testing2", self.s)
-        self.s.replicate("testing1", "testing2", create_target=True)
-        self.assertIn("testing2", self.s)
-        self.s.delete("testing1")
+        try:
+            self.assertNotIn("testing2", self.s)
+            self.s.replicate("http://127.0.0.1:5984/testing1", "http://127.0.0.1:5984/testing2", create_target=True)
+            self.assertIn("testing2", self.s)
+        finally:
+            self.s.delete("testing1")
         self.s.delete("testing2")
 
 
 class ResourceTest(TestCase):
     pass
-
 
 
 class DatabaseTests(TestCase):
@@ -224,7 +239,8 @@ class DatabaseChangesTests(TestCase):
         last_seq, changes = self.db.changes_list()
         self.assertEqual(len(changes), 2)
 
-        _, changes = self.db.changes_list(since=last_seq - 1)
+        self.db.save({"_id": "kk3", "counter": 1})
+        _, changes = self.db.changes_list(since=last_seq)
         self.assertEqual(len(changes), 1)
 
         self.db.delete(doc1)
@@ -329,28 +345,6 @@ class DatabaseQueryTests(TestCase):
     def test_revisions_02(self):
         with self.assertRaises(NotFound):
             list(self.db.revisions("kk12"))
-
-    def test_temporary_query_01(self):
-        map_func = "function(doc) { emit(doc._id, doc.name); }"
-
-        result = self.db.temporary_query(map_func)
-        result = list(result)
-        self.assertEqual(len(result), 3)
-
-    def test_temporary_query_02(self):
-        map_func = "function(doc) { emit(doc._id, doc.name); }"
-        red_func = "function(keys, values, rereduce) { return values.length; }"
-
-        result = self.db.temporary_query(map_func, red_func)
-        result = list(result)
-        self.assertEqual(len(result), 1)
-
-    def test_temporary_query_03(self):
-        map_func = "function(doc) { emit(doc._id, doc.name); }"
-
-        result = self.db.temporary_query(map_func, keys=['kk1'])
-        result = list(result)
-        self.assertEqual(len(result), 1)
 
     def test_query_01(self):
         result = self.db.query("testing/names", group='true',
