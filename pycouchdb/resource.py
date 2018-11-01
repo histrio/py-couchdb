@@ -114,7 +114,6 @@ class Resource(object):
         return self.request("GET", path, **kwargs)
 
     def put(self, path=None, **kwargs):
-        print(path)
         return self.request("PUT", path, **kwargs)
 
     def post(self, path=None, **kwargs):
