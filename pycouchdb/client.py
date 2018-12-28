@@ -33,9 +33,10 @@ def _listen_feed(object, node, feed_reader, **kwargs):
 
     # Possible options: "continuous", "longpoll"
     kwargs.setdefault("feed", "continuous")
+    data = utils.force_bytes(json.dumps(kwargs.pop('data', {})))
 
-    (resp, result) = object.resource(node).get(
-        params=kwargs, stream=True)
+    (resp, result) = object.resource(node).post(
+        params=kwargs, data=data, stream=True)
     try:
         for line in resp.iter_lines():
             # ignore heartbeats
