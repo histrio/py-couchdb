@@ -93,7 +93,7 @@ class Resource(object):
         # Ignore result validation if
         # request is with stream mode
 
-        if stream:
+        if stream and response.status_code < 400:
             result = None
             self._check_result(response, result)
         else:
