@@ -5,8 +5,8 @@ services:
 
 python:
   - 2.7
-  - 3.3
-  - 3.4
+  - 3.7
+  - 3.8
   - pypy
 
 notifications:
@@ -23,4 +23,4 @@ script:
   - nosetests -vv --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest
 
 after_success:
-    - coveralls
+  - coveralls
