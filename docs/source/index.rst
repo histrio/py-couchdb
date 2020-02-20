@@ -25,9 +25,6 @@ Advantages of py-couchdb
 .. _couchdb: http://couchdb.apache.org/
 .. _requests: http://docs.python-requests.org/en/latest/
 
-.. note::
-   requests 1.2 seems buggy with Python3 and I strongly recommend use request 1.1 if you use Python3
-
 
 Example:
 

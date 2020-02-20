@@ -4,6 +4,7 @@
 ![PyPI](https://img.shields.io/pypi/v/pycouchdb)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pycouchdb)
 [![Coverage Status](https://coveralls.io/repos/github/histrio/py-couchdb/badge.svg?branch=master)](https://coveralls.io/github/histrio/py-couchdb?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/pycouchdb/badge/?version=latest)](https://pycouchdb.readthedocs.io/en/latest/?badge=latest)
 
 
 
@@ -51,5 +52,5 @@ Documentation is available at http://pycouchdb.readthedocs.org.
 To test py-couchdb, simply run:
 
 ``` bash
-    nosetests --cover-package=pycouchdb --with-doctest
+nosetests --cover-package=pycouchdb --with-doctest
 ```
