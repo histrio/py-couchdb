@@ -178,7 +178,6 @@ class Server(object):
     # def stats(self, name=None):
     #     pass
 
-
     def create(self, name):
         """
         Create a database.
@@ -680,7 +679,6 @@ class Database(object):
 
         for row in result["rows"]:
             yield wrapper(row)
-
 
     def query(self, name, wrapper=None, flat=None, as_list=False, **kwargs):
         """

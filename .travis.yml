@@ -7,7 +7,7 @@ python:
   - 2.7
   - 3.7
   - 3.8
-  - pypy
+  - 3.9
 
 notifications:
   email:
@@ -16,11 +16,15 @@ notifications:
     on_success: change
     on_failure: change
 
+before_install:
+  - pip install poetry
+
 install:
-  - pip install coverage mock requests nose responses coveralls
+  - poetry install
 
 script:
-  - nosetests -vv --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest
+  - poetry run flake8 --ignore=E731 --max-line-length 90 pycouchdb test
+  - pytest -v --doctest-modules --cov pycouchdb
 
 after_success:
   - coveralls

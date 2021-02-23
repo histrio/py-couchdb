@@ -17,7 +17,7 @@ else:
     from urllib import unquote as _unquote
     from urlparse import urlunsplit, urlsplit
 
-    string_type = unicode
+    string_type = unicode  # noqa: F821
     bytes_type = str
 
 URLSPLITTER = '/'
