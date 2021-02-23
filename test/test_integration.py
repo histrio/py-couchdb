@@ -18,7 +18,8 @@ def server():
     server = pycouchdb.Server(SERVER_URL)
     for db in server:
         server.delete(db)
-    server.create("_users")
+    if "_users" not in server:
+        server.create("_users")
     return server
 
 
