@@ -7,4 +7,5 @@ __maintainer__ = "Rinat Sabitov"
 __email__ = "rinat.sabitov@gmail.com"
 __status__ = "Development"
 
-from .client import Server
+
+from .client import Server  # noqa: F401

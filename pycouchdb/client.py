@@ -178,7 +178,6 @@ class Server(object):
     # def stats(self, name=None):
     #     pass
 
-
     def create(self, name):
         """
         Create a database.
