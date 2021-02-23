@@ -55,7 +55,7 @@ def rec_with_attachment(db, rec, tmpdir):
     doc = db.get("kk1")
     att = tmpdir.join('sample.txt')
     att.write(b"Hello")
-    with open(att) as f:
+    with open(str(att)) as f:
         doc = db.put_attachment(doc, f, "sample.txt")
 
 
