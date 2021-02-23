@@ -24,6 +24,7 @@ pytest-coverage = "^0.0"
 responses = "^0.12"
 Pygments = "^2.5"
 pytest = "^4.6"
+flake8 = "^3.8.4"
 
 [build-system]
 requires = ["poetry>=0.12"]
