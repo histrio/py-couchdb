@@ -2,14 +2,10 @@
 
 from __future__ import print_function, unicode_literals
 
-try:
-    from unittest2 import TestCase
-except ImportError:
-    from unittest import TestCase
-
-import tempfile
+import pytest
 import types
-import pycouchdb as couchdb
+
+import pycouchdb
 
 from pycouchdb.exceptions import Conflict, NotFound
 from pycouchdb import exceptions as exp
@@ -17,487 +13,450 @@ from pycouchdb import exceptions as exp
 SERVER_URL = 'http://admin:password@localhost:5984/'
 
 
-class ServerTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
-
-    def setUp(self):
-        for db in self.s:
-            self.s.delete(db)
-        try:
-            self.s.create("_users")
-        except Conflict:
-            pass
-
-    def test_contains(self):
-        self.s.create("testing5")
-        self.assertIn("testing5", self.s)
-        self.s.delete("testing5")
-        self.assertNotIn("testing5", self.s)
-
-    def test_iter(self):
-        self.assertEqual(list(self.s), ['_users', ])
-        self.s.create("testing3")
-        self.s.create("testing4")
-        self.assertEqual(list(self.s), ['_users', 'testing3', 'testing4'])
-
-    def test_len(self):
-        self.assertEqual(len(self.s), 1)
-        self.s.create("testing3")
-        self.assertEqual(len(self.s), 2)
-        self.s.delete("testing3")
-        self.assertEqual(len(self.s), 1)
-
-    def test_create_delete_db(self):
-        self.s.create("testing2")
-        self.assertIn("testing2", self.s)
-        self.s.delete("testing2")
-        self.assertNotIn("testing2", self.s)
-
-    def test_create(self):
-        self.s.create("testing1")
-        with self.assertRaises(Conflict):
-            self.s.create("testing1")
-        self.s.delete("testing1")
-
-    # TODO: Implement when nodes endpoint will be ready
-    # def test_stats_01(self):
-        # pass
-
-    def test_version(self):
-        version = self.s.version()
-        self.assertTrue(version)
-
-    def test_info(self):
-        data = self.s.info()
-        self.assertIn("version", data)
-
-    # TODO: Implement when nodes endpoint will be ready
-    # def test_config(self):
-    #     pass
-
-    def test_replicate(self):
-        db1 = self.s.create("testing1")
-        db2 = self.s.create("testing2")
-        db1.save({'_id': '1', 'title': 'hello'})
-        self.assertEqual(len(db1), 1)
-        self.assertEqual(len(db2), 0)
-        self.s.replicate(SERVER_URL + "testing1", SERVER_URL + "testing2")
-        self.assertEqual(len(db1), 1)
-        self.assertEqual(len(db2), 1)
-        self.s.delete("testing1")
-        self.s.delete("testing2")
-
-    def test_replicate_create(self):
-        self.s.create('testing1')
-        try:
-            self.assertNotIn("testing2", self.s)
-            self.s.replicate(
-                SERVER_URL + "testing1",
-                SERVER_URL + "testing2",
-                create_target=True)
-            self.assertIn("testing2", self.s)
-        finally:
-            self.s.delete("testing1")
-        self.s.delete("testing2")
+@pytest.fixture
+def server():
+    server = pycouchdb.Server(SERVER_URL)
+    for db in server:
+        server.delete(db)
+    server.create("_users")
+    return server
 
 
-class ResourceTest(TestCase):
-    pass
+@pytest.fixture
+def db(server):
+    yield server.create('pycpuchdb-testing')
+    server.delete('pycpuchdb-testing')
 
 
-class DatabaseTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.s = couchdb.Server(SERVER_URL)
-        cls.db = cls.s.create('testing5')
+@pytest.fixture
+def rec(db):
+    querydoc = {
+        "_id": "_design/testing",
+        "views": {
+            "names": {
+                "map": "function(doc) { emit(doc.name, 1); }",
+                "reduce": "function(keys, values) { return  sum(values); }",
+            }
+        }
+    }
+    db.save(querydoc)
+    db.save_bulk([
+        {"_id": "kk1", "name": "Andrey"},
+        {"_id": "kk2", "name": "Pepe"},
+        {"_id": "kk3", "name": "Alex"},
+    ])
+    yield
+    db.delete("_design/testing")
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.s.delete("testing5")
 
-    def test_save_01(self):
-        doc = {"foo": "bar"}
-        doc2 = self.db.save(doc)
+@pytest.fixture
+def rec_with_attachment(db, rec, tmpdir):
+    doc = db.get("kk1")
+    att = tmpdir.join('sample.txt')
+    att.write(b"Hello")
+    with open(att) as f:
+        doc = db.put_attachment(doc, f, "sample.txt")
 
-        self.assertIn("_id", doc2)
-        self.assertIn("_rev", doc2)
-        self.assertNotIn("_id", doc)
-        self.assertNotIn("_rev", doc)
 
-    def test_save_02(self):
-        doc = self.db.save({'_id': 'kk', 'foo': 'bar'})
-        self.assertIn("_rev", doc)
-        self.assertEqual(doc["_id"], "kk")
+def test_server_contains(server):
+    server.create("testing5")
+    assert "testing5" in server
+    server.delete("testing5")
+    assert "testing5" not in server
 
-    def test_save_03(self):
-        doc1 = {'_id': 'kk2', 'foo': 'bar'}
-        doc2 = self.db.save(doc1)
-        self.db.save(doc2)
 
-    def test_save_04(self):
-        doc = self.db.save({'_id': 'kk3', 'foo': 'bar'})
+def test_iter(server):
+    assert list(server) == ['_users', ]
+    server.create("testing3")
+    server.create("testing4")
+    assert list(server) == ['_users', 'testing3', 'testing4']
 
-        del doc["_rev"]
-        with self.assertRaises(Conflict):
-            self.db.save(doc)
 
-    def test_save_batch(self):
-        doc = {"foo": "bar"}
-        doc2 = self.db.save(doc, batch=True)
-        self.assertIn("_id", doc2)
+def test_len(server):
+    assert len(server) == 1
+    server.create("testing3")
+    assert len(server) == 2
+    server.delete("testing3")
+    assert len(server) == 1
 
-    def test_special_chars1(self):
-        text = "Lürem ipsüm."
-        self.db.save({"_id": "special1", "text": text})
 
-        doc = self.db.get("special1")
-        self.assertEqual(text, doc["text"])
+def test_create_delete_db(server):
+    server.create("testing2")
+    assert "testing2" in server
+    server.delete("testing2")
+    assert "testing2" not in server
 
-    def test_special_chars2(self):
-        text = "Mal sehen ob ich früh aufstehen mag."
-        self.db.save({"_id": "special2", "text": text})
 
-        doc = self.db.get("special2")
-        self.assertEqual(text, doc["text"])
+def test_create(server):
+    server.create("testing1")
+    with pytest.raises(Conflict):
+        server.create("testing1")
 
-    def test_len(self):
-        doc1 = {'_id': 'kk4', 'foo': 'bar'}
-        self.db.save(doc1)
-        self.assertTrue(len(self.db) > 0)
 
-    def test_delete(self):
-        self.db.save({'_id': 'kk5', 'foo': 'bar'})
-        self.db.delete("kk5")
-        self.assertEqual(len(self.db), 0)
+def test_version(server):
+    version = server.version()
+    assert version
 
-        with self.assertRaises(NotFound):
-            self.db.delete("kk6")
 
-    def test_save_bulk_01(self):
-        docs = self.db.save_bulk([
-            {"name": "Andrey"},
-            {"name": "Pepe"},
-            {"name": "Alex"},
-        ])
+def test_info(server):
+    data = server.info()
+    assert "version" in data
 
-        self.assertEqual(len(docs), 3)
 
-    def test_save_bulk_02(self):
-        self.db.save_bulk([
+def test_replicate(server):
+    db1 = server.create("testing1")
+    db2 = server.create("testing2")
+    db1.save({'_id': '1', 'title': 'hello'})
+    assert len(db1) == 1
+    assert len(db2) == 0
+    server.replicate(SERVER_URL + "testing1", SERVER_URL + "testing2")
+    assert len(db1) == 1
+    assert len(db2) == 1
+
+
+def test_replicate_create(server):
+    server.create('testing1')
+    assert "testing2" not in server
+    server.replicate(
+        SERVER_URL + "testing1",
+        SERVER_URL + "testing2",
+        create_target=True)
+    assert "testing2" in server
+
+
+def test_save_01(db):
+    doc = {"foo": "bar"}
+    doc2 = db.save(doc)
+
+    assert "_id" in doc2
+    assert "_rev" in doc2
+    assert "_id" not in doc
+    assert "_rev" not in doc
+
+
+def test_save_02(db):
+    doc = db.save({'_id': 'kk', 'foo': 'bar'})
+    assert "_rev" in doc
+    assert doc["_id"] == "kk"
+
+
+def test_save_03(db):
+    doc1 = {'_id': 'kk2', 'foo': 'bar'}
+    doc2 = db.save(doc1)
+    db.save(doc2)
+    assert "_rev" in doc2
+    assert doc2["_id"] == "kk2"
+
+
+def test_save_04(db):
+    doc = db.save({'_id': 'kk3', 'foo': 'bar'})
+    del doc["_rev"]
+    with pytest.raises(Conflict):
+        db.save(doc)
+
+
+def test_save_batch(db):
+    doc = {"foo": "bar"}
+    doc2 = db.save(doc, batch=True)
+    assert "_id" in doc2
+
+
+def test_special_chars1(db):
+    text = "Lürem ipsüm."
+    db.save({"_id": "special1", "text": text})
+    doc = db.get("special1")
+    assert text == doc["text"]
+
+
+def test_special_chars2(db):
+    text = "Mal sehen ob ich früh aufstehen mag."
+    db.save({"_id": "special2", "text": text})
+
+    doc = db.get("special2")
+    assert text == doc["text"]
+
+
+def test_db_len(db):
+    doc1 = {'_id': 'kk4', 'foo': 'bar'}
+    db.save(doc1)
+    assert len(db) > 0
+
+
+def test_delete(db):
+    db.save({'_id': 'kk5', 'foo': 'bar'})
+    db.delete("kk5")
+    assert len(db) == 0
+
+    with pytest.raises(NotFound):
+        db.delete("kk6")
+
+
+def test_save_bulk_01(db):
+    docs = db.save_bulk([
+        {"name": "Andrey"},
+        {"name": "Pepe"},
+        {"name": "Alex"},
+    ])
+
+    assert len(docs) == 3
+
+
+def test_save_bulk_02(db):
+    db.save_bulk([
+        {"_id": "kk6", "name": "Andrey"},
+        {"_id": "kk7", "name": "Pepe"},
+        {"_id": "kk8", "name": "Alex"},
+    ])
+
+    with pytest.raises(Conflict):
+        db.save_bulk([
             {"_id": "kk6", "name": "Andrey"},
             {"_id": "kk7", "name": "Pepe"},
             {"_id": "kk8", "name": "Alex"},
         ])
 
-        with self.assertRaises(Conflict):
-            self.db.save_bulk([
-                {"_id": "kk6", "name": "Andrey"},
-                {"_id": "kk7", "name": "Pepe"},
-                {"_id": "kk8", "name": "Alex"},
-            ])
 
-    def test_delete_bulk(self):
-        docs = self.db.save_bulk([
-            {"_id": "kj1", "name": "Andrey"},
-            {"_id": "kj2", "name": "Pepe"},
-            {"_id": "kj3", "name": "Alex"},
-        ])
+def test_delete_bulk(db):
+    docs = db.save_bulk([
+        {"_id": "kj1", "name": "Andrey"},
+        {"_id": "kj2", "name": "Pepe"},
+        {"_id": "kj3", "name": "Alex"},
+    ])
 
-        results = self.db.delete_bulk(docs)
-        self.assertEqual(len(results), 3)
-
-    def test_cleanup(self):
-        self.assertTrue(self.db.cleanup())
-
-    def test_commit(self):
-        self.assertTrue(self.db.commit())
-
-    def test_compact(self):
-        self.assertTrue(self.db.compact())
+    results = db.delete_bulk(docs)
+    assert len(results) == 3
 
 
-class DatabaseChangesTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.s = couchdb.Server(SERVER_URL, authmethod="basic")
-        cls.db = cls.s.create('testing_changes')
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.s.delete("testing_changes")
-
-    def create_changes(self):
-        doc1 = {"_id": "kk1", "counter": 1}
-        doc2 = {"_id": "kk2", "counter": 1}
-        doc1 = self.db.save(doc1)
-        doc2 = self.db.save(doc2)
-
-        return doc1, doc2
-
-    def test_changes_list(self):
-        doc1, doc2 = self.create_changes()
-        last_seq, changes = self.db.changes_list()
-        self.assertEqual(len(changes), 2)
-
-        self.db.save({"_id": "kk3", "counter": 1})
-        _, changes = self.db.changes_list(since=last_seq)
-        self.assertEqual(len(changes), 1)
-
-        self.db.delete(doc1)
-        self.db.delete(doc2)
-
-    def test_changes_feed_01(self):
-        doc1, doc2 = self.create_changes()
-        messages = []
-
-        def reader(message, db):
-            messages.append(message)
-            raise exp.FeedReaderExited()
-
-        self.db.changes_feed(reader)
-        self.assertEqual(len(messages), 1)
-
-        self.db.delete(doc1)
-        self.db.delete(doc2)
+def test_cleanup(db):
+    assert db.cleanup()
 
 
-class DatabaseQueryTests(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.s = couchdb.Server(SERVER_URL)
-        try:
-            cls.db = cls.s.create('testing3')
-        except Conflict:
-            cls.s.delete("testing3")
-            cls.db = cls.s.create('testing3')
+def test_commit(db):
+    assert db.commit()
 
-        cls.db.save_bulk([
-            {"_id": "kk1", "name": "Andrey"},
-            {"_id": "kk2", "name": "Pepe"},
-            {"_id": "kk3", "name": "Alex"},
-        ])
 
-        querydoc = {
-            "_id": "_design/testing",
-            "views": {
-                "names": {
-                    "map": "function(doc) { emit(doc.name, 1); }",
-                    "reduce": "function(keys, values) { return  sum(values); }",
-                }
+def test_compact(db):
+    assert db.compact()
+
+
+def create_changes(dstdb):
+    doc1 = {"_id": "kk1", "counter": 1}
+    doc2 = {"_id": "kk2", "counter": 1}
+    doc1 = dstdb.save(doc1)
+    doc2 = dstdb.save(doc2)
+
+    return doc1, doc2
+
+
+def test_changes_list(db):
+    doc1, doc2 = create_changes(db)
+    last_seq, changes = db.changes_list()
+    assert len(changes) == 2
+
+    db.save({"_id": "kk3", "counter": 1})
+    _, changes = db.changes_list(since=last_seq)
+    assert len(changes) == 1
+
+    db.delete(doc1)
+    db.delete(doc2)
+
+
+def test_changes_feed_01(db):
+    doc1, doc2 = create_changes(db)
+    messages = []
+
+    def reader(message, db):
+        messages.append(message)
+        raise exp.FeedReaderExited()
+
+    db.changes_feed(reader)
+    assert len(messages) == 1
+
+    db.delete(doc1)
+    db.delete(doc2)
+
+
+def test_get_not_existent(db):
+    with pytest.raises(NotFound):
+        db.get("does_not_exist_in_db")
+
+
+def test_db_contains(db):
+    db.save({"_id": "test_db_contains"})
+    assert "test_db_contains" in db
+    assert "does_not_exist_in_db" not in db
+
+
+def test_all_01(db, rec):
+    result = [x for x in db.all() if not x['key'].startswith("_")]
+    assert len(result) == 3
+
+
+def test_all_02(db, rec):
+    result = list(db.all(keys=['kk1', 'kk2']))
+    assert len(result) == 2
+
+
+def test_all_03(db, rec):
+    result = list(db.all(keys=['kk1', 'kk2'], flat="key"))
+    assert result == ['kk1', 'kk2']
+
+
+def test_all_04(db, rec):
+    result = db.all(keys=['kk1', 'kk2'], flat="key")
+    assert isinstance(result, types.GeneratorType)
+
+
+def test_all_05(db, rec):
+    result = db.all(keys=['kk1', 'kk2'], flat="key", as_list=True)
+    assert isinstance(result, list)
+
+
+def test_all_404(db, rec):
+    result = db.all(keys=['nonexisting'], as_list=True,
+                    include_docs='false')
+    assert isinstance(result, list)
+
+
+def test_all_startkey_endkey(db, rec):
+    result = list(db.all(startkey='kk1', endkey='kk2'))
+    assert len(result) == 2
+
+
+def test_revisions_01(db, rec):
+    doc = db.get("kk1")
+
+    initial_revisions = list(db.revisions("kk1"))
+    assert len(initial_revisions) == 1
+
+    doc["name"] = "Fooo"
+    db.save(doc)
+
+    revisions = list(db.revisions("kk1"))
+    assert len(revisions) == 2
+
+
+def test_revisions_02(db, rec):
+    with pytest.raises(NotFound):
+        list(db.revisions("kk12"))
+
+
+def test_query_01(db, rec):
+    result = db.query("testing/names", group='true',
+                      keys=['Andrey'], as_list=True)
+    assert len(result) == 1
+
+
+def test_query_02(db, rec):
+    result = db.query("testing/names", as_list=False)
+    assert isinstance(result, types.GeneratorType)
+
+
+def test_query_03(db, rec):
+    result = db.query("testing/names", as_list=True, flat="value")
+    assert result == [3]
+
+
+def test_query_04(db, rec):
+    result = db.one("testing/names", flat="value")
+    assert result == 3
+
+
+def test_query_05(db, rec):
+    result = db.one("testing/names", flat="value",
+                    group='true', keys=['KK'])
+    assert result is None
+
+
+def test_query_06(db, rec):
+    result = db.one("testing/names", flat="value",
+                    group='true', keys=['Andrey'])
+    assert result == 1
+
+
+def test_compact_view_01(db):
+    doc = {
+        "_id": "_design/testing2",
+        "views": {
+            "names": {
+                "map": "function(doc) { emit(doc.name, 1); }",
+                "reduce": "function(keys, values) { return  sum(values); }",
             }
         }
+    }
 
-        cls.db.save(querydoc)
-
-    @classmethod
-    def tearDownClass(cls):
-        cls.s.delete("testing3")
-
-    def test_get_not_existent(self):
-        with self.assertRaises(NotFound):
-            self.db.get("kk4")
-
-    def test_contains(self):
-        self.assertIn("kk1", self.db)
-        self.assertNotIn("does_not_exist_in_db", self.db)
-
-    def test_all_01(self):
-        result = [x for x in self.db.all() if not x['key'].startswith("_")]
-        self.assertEqual(len(result), 3)
-
-    def test_all_02(self):
-        result = list(self.db.all(keys=['kk1', 'kk2']))
-        self.assertEqual(len(result), 2)
-
-    def test_all_03(self):
-        result = list(self.db.all(keys=['kk1', 'kk2'], flat="key"))
-        self.assertEqual(result, ['kk1', 'kk2'])
-
-    def test_all_04(self):
-        result = self.db.all(keys=['kk1', 'kk2'], flat="key")
-        self.assertIsInstance(result, types.GeneratorType)
-
-    def test_all_05(self):
-        result = self.db.all(keys=['kk1', 'kk2'], flat="key", as_list=True)
-        self.assertIsInstance(result, list)
-
-    def test_all_404(self):
-        result = self.db.all(keys=['nonexisting'], as_list=True,
-                             include_docs='false')
-        self.assertIsInstance(result, list)
-
-    def test_all_startkey_endkey(self):
-        result = list(self.db.all(startkey='kk1', endkey='kk2'))
-        self.assertEqual(len(result), 2)
-
-    def test_revisions_01(self):
-        doc = self.db.get("kk1")
-
-        initial_revisions = list(self.db.revisions("kk1"))
-        self.assertEqual(len(initial_revisions), 1)
-
-        doc["name"] = "Fooo"
-        self.db.save(doc)
-
-        revisions = list(self.db.revisions("kk1"))
-        self.assertEqual(len(revisions), 2)
-
-    def test_revisions_02(self):
-        with self.assertRaises(NotFound):
-            list(self.db.revisions("kk12"))
-
-    def test_query_01(self):
-        result = self.db.query("testing/names", group='true',
-                               keys=['Andrey'], as_list=True)
-        self.assertEqual(len(result), 1)
-
-    def test_query_02(self):
-        result = self.db.query("testing/names", as_list=False)
-        self.assertIsInstance(result, types.GeneratorType)
-
-    def test_query_03(self):
-        result = self.db.query("testing/names", as_list=True, flat="value")
-        self.assertEqual(result, [3])
-
-    def test_query_04(self):
-        result = self.db.one("testing/names", flat="value")
-        self.assertEqual(result, 3)
-
-    def test_query_05(self):
-        result = self.db.one("testing/names", flat="value",
-                             group='true', keys=['KK'])
-        self.assertEqual(result, None)
-
-    def test_query_06(self):
-        result = self.db.one("testing/names", flat="value",
-                             group='true', keys=['Andrey'])
-        self.assertEqual(result, 1)
-
-    def test_compact_view_01(self):
-        doc = {
-            "_id": "_design/testing2",
-            "views": {
-                "names": {
-                    "map": "function(doc) { emit(doc.name, 1); }",
-                    "reduce": "function(keys, values) { return  sum(values); }",
-                }
-            }
-        }
-
-        self.db.save(doc)
-        self.db.compact_view("testing2")
-
-    def test_compact_view_02(self):
-        with self.assertRaises(NotFound):
-            self.db.compact_view("fooo")
+    db.save(doc)
+    db.compact_view("testing2")
 
 
-class DatabaseAttachmentsTest(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.s = couchdb.Server(SERVER_URL)
-        try:
-            cls.db = cls.s.create('testing4')
-        except Conflict:
-            cls.s.delete("testing4")
-            cls.db = cls.s.create('testing4')
+def test_compact_view_02(db):
+    with pytest.raises(NotFound):
+        db.compact_view("fooo")
 
-        cls.db.save_bulk([
-            {"_id": "kk1", "name": "Andrey"},
-        ])
 
-    @classmethod
-    def tearDownClass(cls):
-        cls.s.delete("testing4")
+def test_attachments_01(db, rec_with_attachment):
 
-    def test_attachments_01(self):
-        doc = self.db.get("kk1")
+    doc = db.get("kk1")
+    assert "_attachments" in doc
 
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(b"Hello World")
-            f.seek(0)
+    data = db.get_attachment(doc, "sample.txt")
+    assert data == b"Hello"
 
-            self.db.put_attachment(doc, f, "sample.txt")
+    doc = db.delete_attachment(doc, "sample.txt")
+    assert "_attachments" not in doc
 
-        doc = self.db.get("kk1")
-        self.assertIn("_attachments", doc)
+    doc = db.get("kk1")
+    assert "_attachments" not in doc
 
-        data = self.db.get_attachment(doc, "sample.txt")
-        self.assertEqual(data, b"Hello World")
 
-        doc = self.db.delete_attachment(doc, "sample.txt")
-        self.assertNotIn("_attachments", doc)
+def test_attachments_02(db, rec_with_attachment):
+    doc = db.get("kk1")
+    assert "_attachments" in doc
 
-        doc = self.db.get("kk1")
-        self.assertNotIn("_attachments", doc)
 
-    def test_attachments_02(self):
-        doc = self.db.get("kk1")
+def test_get_not_existent_attachment(db, rec):
+    doc = db.get("kk1")
+    with pytest.raises(NotFound):
+        db.get_attachment(doc, "kk.txt")
 
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(b"Hello World")
-            f.seek(0)
 
-            self.db.put_attachment(doc, f)
+def test_attachments_03_stream(db, rec_with_attachment):
+    doc = db.get("kk1")
 
-        doc = self.db.get("kk1")
-        self.assertIn("_attachments", doc)
+    response = db.get_attachment(doc, "sample.txt", stream=True)
+    stream = response.iter_content()
 
-    def test_get_not_existent_attachment(self):
-        doc = self.db.get("kk1")
-        with self.assertRaises(NotFound):
-            self.db.get_attachment(doc, "kk.txt")
+    assert next(stream) == b"H"
+    assert next(stream) == b"e"
+    assert next(stream) == b"l"
+    assert next(stream) == b"l"
+    assert next(stream) == b"o"
 
-    def test_attachments_03_stream(self):
-        doc = self.db.get("kk1")
+    with pytest.raises(StopIteration):
+        next(stream)
 
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(b"Hello")
-            f.seek(0)
 
-            doc = self.db.put_attachment(doc, f, "sample.txt")
+def test_regression_unexpected_deletion_of_attachment(db, rec_with_attachment):
+    """
+    When I upload one file the code looks like:
 
-        response = self.db.get_attachment(doc, "sample.txt", stream=True)
-        stream = response.iter_content()
+        doc = db.put_attachment(doc, file_object)
 
-        self.assertEqual(next(stream), b"H")
-        self.assertEqual(next(stream), b"e")
-        self.assertEqual(next(stream), b"l")
-        self.assertEqual(next(stream), b"l")
-        self.assertEqual(next(stream), b"o")
+    Ok, but now I want to update one field:
 
-        with self.assertRaises(StopIteration):
-            next(stream)
+        doc['onefield'] = 'newcontent'
+        doc = db.save(doc)
 
-    def test_regression_unexpected_deletion_of_attachment(self):
-        """
-        When I upload one file the code looks like:
+    et voilà, the previously uploaded file has been deleted!
+    """
 
-            doc = db.put_attachment(doc, file_object)
+    doc = db.get("kk1")
 
-        Ok, but now I want to update one field:
+    assert "_attachments" in doc
+    assert "sample.txt" in doc["_attachments"]
 
-            doc['onefield'] = 'newcontent'
-            doc = db.save(doc)
+    doc["some_attr"] = 1
+    doc = db.save(doc)
 
-        et voilà, the previously uploaded file has been deleted!
-        """
-
-        doc = self.db.save({"_id": "kk2"})
-
-        with tempfile.NamedTemporaryFile() as f:
-            f.write(b"Hello World")
-            f.seek(0)
-
-            doc = self.db.put_attachment(doc, f, "sample.txt")
-
-        self.assertIn("_attachments", doc)
-        self.assertIn("sample.txt", doc["_attachments"])
-
-        doc["some_attr"] = 1
-        doc = self.db.save(doc)
-
-        self.assertIn("_attachments", doc)
-        self.assertIn("sample.txt", doc["_attachments"])
+    assert "_attachments" in doc
+    assert "sample.txt" in doc["_attachments"]

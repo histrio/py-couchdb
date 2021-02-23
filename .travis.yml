@@ -17,11 +17,15 @@ notifications:
     on_success: change
     on_failure: change
 
+before_install:
+  - pip install poetry
+
 install:
-  - pip install coverage mock requests nose responses coveralls
+  - poetry install
 
 script:
-  - nosetests -vv --with-coverage --cover-erase --cover-package=pycouchdb --with-doctest
+  - poetry run flake8 pycouchdb test
+  - pytest -v --doctest-modules --cov pycouchdb
 
 after_success:
   - coveralls

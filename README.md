@@ -52,5 +52,5 @@ Documentation is available at http://pycouchdb.readthedocs.org.
 To test py-couchdb, simply run:
 
 ``` bash
-nosetests --cover-package=pycouchdb --with-doctest
+pytest -v --doctest-modules --cov pycouchdb
 ```
