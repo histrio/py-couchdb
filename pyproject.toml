@@ -18,7 +18,6 @@ classifiers = [
 [tool.poetry.dependencies]
 python = "^2.7 | ^3.8 | ^3.7 | ^3.9"
 requests = "^2.25"
-cryptography = "^3.3"
 
 [tool.poetry.dev-dependencies]
 responses = "^0.12"
