@@ -1,0 +1,56 @@
+version: 2.1
+
+machine:
+  services:
+    - couchdb
+
+workflows:
+  main:
+    jobs:
+      - build-and-test-27
+      - build-and-test-36
+      - build-and-test-37
+      - build-and-test-38
+      - build-and-test-39
+
+jobs:
+  build-and-test-36: &test-template
+    docker:
+        - image: circleci/python:3.6
+        - image: couchdb:3.1
+    steps:
+      - checkout
+      - restore_cache:
+            key: deps-{{ checksum "poetry.lock" }}
+      - run:
+          name: Install Dependencies
+          command: |
+            poetry install -vvv
+      - save_cache:
+            key: deps-{{ checksum "poetry.lock" }}
+            paths:
+                - /home/circleci/.cache/pypoetry/virtualenvs
+      - run:
+          name: Run flake8
+          command: |
+            poetry run flake8 --ignore=E731 --max-line-length 90 pycouchdb test
+      - run:
+          name: Test and get coverage
+          command: |
+            poetry run pytest -v --doctest-modules --cov pycouchdb
+  build-and-test-37:
+    <<: *test-template
+    docker:
+        - image: circleci/python:3.7
+  build-and-test-38:
+    <<: *test-template
+    docker:
+        - image: circleci/python:3.8
+  build-and-test-39:
+    <<: *test-template
+    docker:
+        - image: circleci/python:3.9
+  build-and-test-27:
+    <<: *test-template
+    docker:
+        - image: circleci/python:2.7
