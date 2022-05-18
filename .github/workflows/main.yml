@@ -23,13 +23,8 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
       - name: Get poetry
-        uses: knowsuchagency/poetry-install@v1
+        run: pip install poetry
       - name: Set up CouchDB
-        uses: iamssen/couchdb-github-action@master
-        with:
-          couchdb-version: ${{ matrix.couchdb-version }}
-        env:
-          COUCHDB_USER: admin
-          COUCHDB_PASSWORD: password
+        run: docker run --name my-couchdb-app -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
       - run: poetry install
       - run: poetry run pytest -v --doctest-modules --cov pycouchdb
