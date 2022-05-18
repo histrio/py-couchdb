@@ -24,9 +24,10 @@ def server():
 
 
 @pytest.fixture
-def db(server):
-    yield server.create('pycouchdb-testing')
-    server.delete('pycouchdb-testing')
+def db(server, request):
+    db_name = 'pycouchdb-testing-' + request.node.name
+    yield server.create(db_name)
+    server.delete(db_name)
 
 
 @pytest.fixture
