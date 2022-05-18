@@ -11,7 +11,7 @@ jobs:
   ci:
     strategy:
       fail-fast: false
-      #max-parallel: 1
+      max-parallel: 1
       matrix:
         python-version: [3.7, 3.8, 3.9, '3.10']
         couchdb-version: [1.7, 2.3, 3.2, 'latest']
@@ -27,4 +27,14 @@ jobs:
       - name: Set up CouchDB
         run: docker run --name couchdb-test-${{ matrix.couchdb-version }} -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
       - run: poetry install
-      - run: poetry run pytest -v --doctest-modules --cov pycouchdb
+      - run: poetry run pytest -v ./test/test_integration.py
+
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v2
+      - name: Get poetry
+        run: pip install poetry
+      - run: poetry install
+      - run: poetry run pytest -v --doctest-modules --cov pycouchdb ./test/test_functional.py
