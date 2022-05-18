@@ -31,7 +31,7 @@ jobs:
         with:
           couchdb-version: ${{ matrix.couchdb-version }}
         env:
-          COUCHDB_USER=admin
-          COUCHDB_PASSWORD=password
+          COUCHDB_USER: admin
+          COUCHDB_PASSWORD: password
       - run: poetry install
       - run: poetry run pytest -v --doctest-modules --cov pycouchdb
