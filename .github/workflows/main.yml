@@ -11,7 +11,6 @@ jobs:
   ci:
     strategy:
       fail-fast: false
-      #max-parallel: 1
       matrix:
         python-version: [3.7, 3.8, 3.9, '3.10']
         couchdb-version: [1.7, 2.3, 3.2, 'latest']
@@ -25,6 +24,6 @@ jobs:
       - name: Get poetry
         run: pip install poetry
       - name: Set up CouchDB
-        run: docker run --name my-couchdb-app -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
+        run: docker run --name couchdb-test-${{ matrix.couchdb-version }} -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
       - run: poetry install
       - run: poetry run pytest -v --doctest-modules --cov pycouchdb
