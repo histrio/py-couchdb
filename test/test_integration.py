@@ -10,7 +10,7 @@ import pycouchdb
 from pycouchdb.exceptions import Conflict, NotFound
 from pycouchdb import exceptions as exp
 
-SERVER_URL = 'http://localhost:5984/'
+SERVER_URL = 'http://admin:password@localhost:5984/'
 
 
 @pytest.fixture
@@ -24,9 +24,10 @@ def server():
 
 
 @pytest.fixture
-def db(server):
-    yield server.create('pycpuchdb-testing')
-    server.delete('pycpuchdb-testing')
+def db(server, request):
+    db_name = 'pycouchdb-testing-' + request.node.name
+    yield server.create(db_name)
+    server.delete(db_name)
 
 
 @pytest.fixture

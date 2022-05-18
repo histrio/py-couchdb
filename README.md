@@ -1,6 +1,6 @@
 # py-couchdb
 
-[![Build Status](https://travis-ci.org/histrio/py-couchdb.svg?branch=master)](https://travis-ci.org/histrio/py-couchdb)
+[![CI](https://github.com/histrio/py-couchdb/actions/workflows/main.yml/badge.svg?branch=no-py2)](https://github.com/histrio/py-couchdb/actions/workflows/main.yml)
 ![PyPI](https://img.shields.io/pypi/v/pycouchdb)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pycouchdb)
 [![Coverage Status](https://coveralls.io/repos/github/histrio/py-couchdb/badge.svg?branch=master)](https://coveralls.io/github/histrio/py-couchdb?branch=master)
