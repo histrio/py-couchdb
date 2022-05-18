@@ -25,6 +25,8 @@ def server():
 
 @pytest.fixture
 def db(server):
+    if 'pycpuchdb-testing' in server:
+        server.delete('pycpuchdb-testing')
     yield server.create('pycpuchdb-testing')
     server.delete('pycpuchdb-testing')
 
