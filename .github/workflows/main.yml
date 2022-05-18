@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ no-py2 ]
+    branches: [ master ]
   pull_request:
-    branches: [ no-py2 ]
+    branches: [ master ]
   workflow_dispatch:
 
 jobs:
