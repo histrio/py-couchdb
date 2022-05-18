@@ -27,8 +27,8 @@ jobs:
       - name: Get poetry
         uses: knowsuchagency/poetry-install@v1
       - name: Set up CouchDB
-        uses: "cobot/couchdb-action@master"
+        uses: iamssen/couchdb-github-action@master
         with:
-          couchdb version: ${{ matrix.couchdb-version }}\
+          couchdb-version: ${{ matrix.couchdb-version }}
       - run: poetry install --dev
       - run: poetry run pytest -v --doctest-modules --cov pycouchdb
