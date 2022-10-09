@@ -30,7 +30,7 @@ class Resource(object):
         self.session.verify = verify
 
     def _authenticate(self, credentials, method, authheader):
-        if not credentials:
+        if not credentials and not authheader:
             return
 
         if method == "session":
