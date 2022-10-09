@@ -11,7 +11,7 @@ from . import exceptions
 
 class Resource(object):
     def __init__(self, base_url, full_commit=True, session=None,
-                 credentials=None, authmethod="session", verify=False):
+                 credentials=None, authmethod="session", authheader="", verify=False):
 
         self.base_url = base_url
 #        self.verify = verify
@@ -21,7 +21,7 @@ class Resource(object):
 
             self.session.headers.update({"accept": "application/json",
                                          "content-type": "application/json"})
-            self._authenticate(credentials, authmethod)
+            self._authenticate(credentials, authmethod, authheader)
 
             if not full_commit:
                 self.session.headers.update({'X-Couch-Full-Commit': 'false'})
@@ -29,7 +29,7 @@ class Resource(object):
             self.session = session
         self.session.verify = verify
 
-    def _authenticate(self, credentials, method):
+    def _authenticate(self, credentials, method, authheader):
         if not credentials:
             return
 
@@ -44,6 +44,9 @@ class Resource(object):
 
         elif method == "basic":
             self.session.auth = credentials
+
+        elif method == "customheader":
+            self.session.headers.update({'Authorization': authheader})
 
         else:
             raise RuntimeError("Invalid authentication method")
