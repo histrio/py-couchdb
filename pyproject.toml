@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pycouchdb"
-version = "1.14.2"
+version = "1.15.0"
 description = "Modern pure python CouchDB Client."
 authors = ["Andrey Antukh <niwi@niwi.be>"]
 maintainers = ["Rinat Sabitov <rinat.sabitov@gmail.com>"]
