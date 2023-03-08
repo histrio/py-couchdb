@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       max-parallel: 1
       matrix:
-        python-version: [3.7, 3.8, 3.9, '3.10']
+        python-version: [3.8, 3.9, '3.10']
         couchdb-version: [1.7, 2.3, 3.2, 'latest']
 
     runs-on: ubuntu-latest
