@@ -20,7 +20,7 @@ All seems not be maintained, all libraries used standard Python libraries for ht
 ## Advantages of py-couchdb
 
 - Use [requests](http://docs.python-requests.org/en/latest/) for http requests (much faster than the standard library)
-- Python2 and Python3 compatible with same codebase (with one exception, python view server that uses 2to3)
+- CouchDB 2.x and CouchDB 3.x compatible
 - Also compatible with pypy.
 
 

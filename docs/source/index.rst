@@ -18,7 +18,7 @@ Advantages of py-couchdb
 ========================
 
 - Uses `requests`_ for http requests (much faster than the standard library)
-- Python2 and Python3 compatible with same codebase (with one exception, Python view server that uses 2to3)
+- CouchDB 2.x and CouchDB 3.x compatible
 - Also compatible with pypy.
 
 .. _python: http://python.org
