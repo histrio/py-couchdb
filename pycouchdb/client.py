@@ -740,3 +740,22 @@ class Database(object):
 
         (resp, result) = self.resource("_changes").get(params=kwargs)
         return result['last_seq'], result['results']
+
+    def find(self, selector, wrapper=None, **kwargs):
+        """
+        Execute Mango querys using _find.
+
+        :param selector: data to search
+        :param wrapper: wrap result into a specific class.
+
+        """
+        path = '_find'
+        data = utils.force_bytes(json.dumps(selector))
+
+        (resp, result) = self.resource.post(path, data=data, params=kwargs)
+
+        if wrapper is None:
+            def wrapper(doc): return doc
+
+        for doc in result["docs"]:
+            yield wrapper(doc)
