@@ -29,13 +29,13 @@ authentication,  you can pass ``http://username:password@localhost:5984/`` to se
 
     >>> server = pycouchdb.Server("http://username:password@localhost:5984/")
 
-py-couchdb have two methods for authentication: with session or basic auth. By default, "session" method
+py-couchdb have two methods for authentication: with session or basic auth. By default, "basic" method
 is used but if you like, can specify the method on create a server instance:
 
 .. code-block:: python
 
     >>> server = pycouchdb.Server("http://username:password@localhost:5984/",
-                                                          authmethod="basic")
+                                                          authmethod="session")
 
 Create, obtain and delete a database
 -------------------------------------
