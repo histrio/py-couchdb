@@ -84,8 +84,13 @@ class Server(object):
     :param full_commit: If ``False``, couchdb not commits all data on a
                         request is finished.
     :param authmethod: specify a authentication method. By default "basic"
-                       method is used but also exists "session" (that requires
-                       some server configuration changes).
+                       method is used. also exists "session" (that requires
+                       some server configuration changes). "customheader"
+                       exists as well for customized authentication methods
+    :param authheader: specify custom Authorization header to be used.
+                       It's very useful for JWT authentication method.
+                       This value should contain auth tipe like "Bearer "
+                       before the token itself.
 
     .. versionchanged: 1.4
        Set basic auth method as default instead of session method.
@@ -96,12 +101,13 @@ class Server(object):
     """
 
     def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True,
-                 authmethod="basic", verify=False):
+                 authmethod="basic", verify=False, authheader=""):
 
         self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
                                  credentials=credentials,
                                  authmethod=authmethod,
+                                 authheader=authheader,
                                  verify=verify)
 
     def __repr__(self):
