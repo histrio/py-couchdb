@@ -397,7 +397,6 @@ def test_compact_view_02(db):
 
 
 def test_attachments_01(db, rec_with_attachment):
-
     doc = db.get("kk1")
     assert "_attachments" in doc
 
@@ -462,3 +461,111 @@ def test_regression_unexpected_deletion_of_attachment(db, rec_with_attachment):
 
     assert "_attachments" in doc
     assert "sample.txt" in doc["_attachments"]
+
+
+@pytest.fixture
+def view(db):
+    querydoc = {
+        "_id": "_design/testing",
+        "views": {
+            "names": {
+                "map": "function(doc) { emit(doc.name, 1); }",
+                # "reduce": "function(keys, values) { return  sum(values); }",
+            }
+        }
+    }
+    db.save(querydoc)
+    db.save_bulk([
+        {"_id": "kk1", "name": "Florian"},
+        {"_id": "kk2", "name": "Raphael"},
+        {"_id": "kk3", "name": "Jaideep"},
+        {"_id": "kk4", "name": "Andrew"},
+        {"_id": "kk5", "name": "Pepe"},
+        {"_id": "kk6", "name": "Alex"},
+
+    ])
+    yield
+    db.delete("_design/testing")
+
+
+@pytest.fixture
+def view_duplicate_keys(db):
+    querydoc = {
+        "_id": "_design/testing",
+        "views": {
+            "names": {
+                "map": "function(doc) { emit(doc.name, 1); }",
+                # "reduce": "function(keys, values) { return  sum(values); }",
+            }
+        }
+    }
+    db.save(querydoc)
+    db.save_bulk([
+        {"_id": "kk1", "name": "Florian"},
+        {"_id": "kk2", "name": "Raphael"},
+        {"_id": "kk3", "name": "Jaideep"},
+        {"_id": "kk4", "name": "Andrew"},
+        {"_id": "kk5", "name": "Andrew"},
+        {"_id": "kk6", "name": "Andrew"},
+
+    ])
+    yield
+    db.delete("_design/testing")
+
+
+def test_pagination(db, view):
+    # Check if invariants on pagesize are followed
+    with pytest.raises(AssertionError) as err:
+        db.query("testing/names", pagesize="123")
+
+    assert ("pagesize should be a positive integer" in str(err.value))
+
+    with pytest.raises(AssertionError) as err:
+        db.query("testing/names", pagesize=0)
+
+    assert ("pagesize should be a positive integer" in str(err.value))
+
+    # Check if the number of records retrieved are correct
+    records = list(db.query("testing/names", pagesize=1))
+    assert (len(records) == 6)
+
+    # Check no duplicate records are retrieved
+    record_ids = set(record['id'] for record in records)
+    assert (len(record_ids) == 6)
+
+
+def test_duplicate_keys_pagination(db, view_duplicate_keys):
+    # Check if the number of records retrieved are correct
+    records = list(db.query("testing/names", pagesize=1))
+    print(type(records[0]))
+    assert (len(records) == 6)
+
+    # Check no duplicate records are retrieved
+    record_ids = set(record['id'] for record in records)
+    assert (len(record_ids) == 6)
+
+
+def test_limit_pagination(db, view_duplicate_keys):
+    # Case 1: the paginator follows the limit
+    # Request only first three documents
+    records = list(db.query("testing/names", pagesize=10, limit=3))
+    assert len(records) == 3
+
+    record_ids = set(record['id'] for record in records)
+    assert len(record_ids) == 3
+
+    # Case 2: limit > #documents
+    records = list(db.query("testing/names", pagesize=10, limit=10))
+    assert len(records) == 6
+
+    record_ids = set(record['id'] for record in records)
+    assert len(record_ids) == 6
+
+
+def test_large_page_size(db, view_duplicate_keys):
+    records = list(db.query("testing/names", pagesize=100))
+    assert len(records) == 6
+
+    record_ids = set(record['id'] for record in records)
+    assert len(record_ids) == 6
+

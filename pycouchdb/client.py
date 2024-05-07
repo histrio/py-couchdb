@@ -12,7 +12,6 @@ from . import feedreader
 from . import exceptions as exp
 from .resource import Resource
 
-
 DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
 
@@ -55,6 +54,7 @@ class _StreamResponse(object):
     See more on:
     http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
     """
+
     def __init__(self, response):
         self._response = response
 
@@ -658,7 +658,7 @@ class Database(object):
 
         params = utils.encode_view_options(params)
         result = list(self._query(self.resource(*path), wrapper=wrapper,
-                      flat=flat, params=params, data=data))
+                                  flat=flat, params=params, data=data))
 
         return result[0] if len(result) > 0 else None
 
@@ -680,7 +680,57 @@ class Database(object):
         for row in result["rows"]:
             yield wrapper(row)
 
-    def query(self, name, wrapper=None, flat=None, as_list=False, **kwargs):
+    def _query_paginate(self, resource, pagesize, data=None, params=None, headers=None,
+                        flat=None, wrapper=None):
+        if wrapper is None:
+            wrapper = lambda row: row
+
+        if flat is not None:
+            wrapper = lambda row: row[flat]
+
+        limit = params.get('limit', float('inf'))
+        params['limit'] = pagesize + 1
+
+        if data is None:
+            (resp, result) = resource.get(params=params, headers=headers)
+        else:
+            (resp, result) = resource.post(
+                data=data, params=params, headers=headers)
+
+        startkey = result["rows"][0]["key"]
+
+        while len(result["rows"]) == pagesize + 1:
+
+            next_startkey = result["rows"][-1]["key"]
+            next_startkey_docid = result["rows"][-1]["id"]
+
+            for row in result["rows"][:-1]:
+                if limit <= 0: return
+
+                yield wrapper(row)
+                limit -= 1
+
+            # do this regardless?
+            # if startkey == next_startkey:
+            params['startkey_docid'] = next_startkey_docid
+
+            startkey = next_startkey
+            params['startkey'] = startkey
+
+            params = utils.encode_view_options(params)
+
+            if data is None:
+                (resp, result) = resource.get(params=params, headers=headers)
+            else:
+                (resp, result) = resource.post(
+                    data=data, params=params, headers=headers)
+
+        for row in result["rows"]:
+            if limit <= 0: return
+            yield wrapper(row)
+            limit -= 1
+
+    def query(self, name, wrapper=None, flat=None, pagesize=None, as_list=False, **kwargs):
         """
         Execute a design document view query.
 
@@ -690,6 +740,7 @@ class Database(object):
             default lazy generator.
         :param flat: get a specific field from a object instead
             of a complete object.
+        :param pagesize: Paginate the query response with `pagesize` rows per page.
 
         .. versionadded: 1.4
            Add as_list parameter.
@@ -708,8 +759,16 @@ class Database(object):
             data = utils.force_bytes(json.dumps(data))
 
         params = utils.encode_view_options(params)
-        result = self._query(self.resource(*path), wrapper=wrapper,
-                             flat=flat, params=params, data=data)
+
+        if pagesize is None:
+            result = self._query(self.resource(*path), wrapper=wrapper,
+                                 flat=flat, params=params, data=data)
+        else:
+            assert isinstance(pagesize, int), "pagesize should be a positive integer"
+            assert pagesize > 0, "pagesize should be a positive integer"
+
+            result = self._query_paginate(self.resource(*path), pagesize=pagesize, wrapper=wrapper,
+                                          flat=flat, params=params, data=data)
 
         if as_list:
             return list(result)
