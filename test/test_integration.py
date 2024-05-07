@@ -501,9 +501,9 @@ def view_duplicate_keys(db):
     }
     db.save(querydoc)
     db.save_bulk([
-        {"_id": "kk1", "name": "Florian"},
-        {"_id": "kk2", "name": "Raphael"},
-        {"_id": "kk3", "name": "Jaideep"},
+        {"_id": "kk1", "name": "Andrew"},
+        {"_id": "kk2", "name": "Andrew"},
+        {"_id": "kk3", "name": "Andrew"},
         {"_id": "kk4", "name": "Andrew"},
         {"_id": "kk5", "name": "Andrew"},
         {"_id": "kk6", "name": "Andrew"},
@@ -536,7 +536,7 @@ def test_pagination(db, view):
 
 def test_duplicate_keys_pagination(db, view_duplicate_keys):
     # Check if the number of records retrieved are correct
-    records = list(db.query("testing/names", pagesize=1))
+    records = list(db.query("testing/names", pagesize=4))
     print(type(records[0]))
     assert (len(records) == 6)
 
