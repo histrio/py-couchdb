@@ -18,6 +18,7 @@ classifiers = [
 [tool.poetry.dependencies]
 python = ">=3.8.1,<4"
 requests = "^2.28"
+chardet = "^5.2.0"
 
 [tool.poetry.dev-dependencies]
 responses = "^0.22"
