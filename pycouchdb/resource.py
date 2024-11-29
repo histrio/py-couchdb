@@ -11,10 +11,11 @@ from . import exceptions
 
 class Resource(object):
     def __init__(self, base_url, full_commit=True, session=None,
-                 credentials=None, authmethod="session", verify=False):
+                 credentials=None, authmethod="session", verify=False, use_ordered_dict=False):
 
         self.base_url = base_url
 #        self.verify = verify
+        self.use_ordered_dict = use_ordered_dict
 
         if not session:
             self.session = requests.session()
@@ -50,7 +51,7 @@ class Resource(object):
 
     def __call__(self, *path):
         base_url = utils.urljoin(self.base_url, *path)
-        return self.__class__(base_url, session=self.session)
+        return self.__class__(base_url, session=self.session, use_ordered_dict=self.use_ordered_dict)
 
     def _check_result(self, response, result):
         try:
@@ -97,7 +98,7 @@ class Resource(object):
             result = None
             self._check_result(response, result)
         else:
-            result = utils.as_json(response)
+            result = utils.as_json(response, self.use_ordered_dict)
 
         if result is None:
             return response, result

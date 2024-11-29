@@ -2,7 +2,7 @@
 
 import json
 import sys
-
+from collections import OrderedDict
 
 if sys.version_info[0] == 3:
     from urllib.parse import unquote as _unquote
@@ -86,11 +86,12 @@ def urljoin(base, *path):
     return reduce(_join, path, base)
 
 
-def as_json(response):
+def as_json(response, use_ordered_dict=False):
     if "application/json" in response.headers['content-type']:
         response_src = response.content.decode('utf-8')
         if response.content != b'':
-            return json.loads(response_src)
+            hook = OrderedDict if use_ordered_dict else None
+            return json.loads(response_src, object_pairs_hook=hook)
         else:
             return response_src
     return None
