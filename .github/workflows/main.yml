@@ -25,7 +25,7 @@ jobs:
       - name: Get poetry
         run: pip install poetry
       - name: Set up CouchDB
-        run: docker run --name couchdb-test-${{ matrix.couchdb-version }} -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
+        run: docker run --name couchdb-test-${{ matrix.couchdb-version }} --ulimit nofile=1024:1024 -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
       - run: poetry install
       - run: poetry run pytest -v ./test/test_integration.py
 
