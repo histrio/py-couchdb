@@ -162,6 +162,19 @@ CouchDB. And this is a way to make a query using predefined views with Python:
     [{'value': 1, 'key': 'Fooo'}]
 
 
+Both type of queries support querying options provided by CouchDB view API
+https://wiki.apache.org/couchdb/HTTP_view_API#Querying_Options.
+Example of query using key that is used in ``emit()`` function.
+
+.. code-block:: python
+
+    >>> map_func = "function(doc) { emit(doc.name, 1); }"
+    >>> db.temporary_query(map_func)
+    <generator object _query at 0x7f65bd292870>
+    >>> list(db.temporary_query(map_func, key='Fooo'))
+    [{'value': 1, 'id': '8b588fa0a3b74a299c6d958467994b9a', 'key': 'Fooo'}]
+
+
 Subscribe to a changes stream feed
 ----------------------------------
 
