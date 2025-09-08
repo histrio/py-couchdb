@@ -11,15 +11,15 @@ jobs:
   ci:
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 3
       matrix:
-        python-version: [3.8, 3.9, '3.10']
-        couchdb-version: [2.3, 3.2, 'latest']
+        python-version: [3.9, 3.10, 3.11, 3.12, 3.13]
+        couchdb-version: [2.3, 3.2, 3.3, 3.4, 3.5, 'latest']
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install uv
@@ -34,8 +34,8 @@ jobs:
   tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
       - name: Install uv
         uses: astral-sh/setup-uv@v3
         with:
