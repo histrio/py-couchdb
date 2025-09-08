@@ -22,19 +22,23 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Get poetry
-        run: pip install poetry
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
       - name: Set up CouchDB
         run: docker run --name couchdb-test-${{ matrix.couchdb-version }} -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
-      - run: poetry install
-      - run: poetry run pytest -v ./test/test_integration.py
+      - run: uv sync --extra dev
+      - run: uv run pytest -v ./test/test_integration.py
 
   tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
-      - name: Get poetry
-        run: pip install poetry
-      - run: poetry install
-      - run: poetry run pytest -v --doctest-modules --cov pycouchdb ./test/test_functional.py
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --extra dev
+      - run: uv run pytest -v --doctest-modules --cov pycouchdb ./test/test_functional.py
