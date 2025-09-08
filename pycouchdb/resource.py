@@ -23,9 +23,10 @@ class Resource(object):
 
             if not full_commit:
                 self.session.headers.update({'X-Couch-Full-Commit': 'false'})
+
+            self.session.verify = verify
         else:
             self.session = session
-        self.session.verify = verify
 
     def _authenticate(self, credentials, method):
         if not credentials:
