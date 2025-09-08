@@ -51,6 +51,9 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
+          slug: ${{ github.repository }}
+          sha: ${{ github.sha }}
+          branch: ${{ github.ref_name }}
 
   integration-tests:
     strategy:
