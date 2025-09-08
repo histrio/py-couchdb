@@ -3,7 +3,7 @@
 [![CI](https://github.com/histrio/py-couchdb/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/histrio/py-couchdb/actions/workflows/main.yml)
 ![PyPI](https://img.shields.io/pypi/v/pycouchdb)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pycouchdb)
-[![Coverage Status](https://coveralls.io/repos/github/histrio/py-couchdb/badge.svg?branch=master)](https://coveralls.io/github/histrio/py-couchdb?branch=master)
+[![codecov](https://codecov.io/github/histrio/py-couchdb/graph/badge.svg?token=eXN16KQiEq)](https://codecov.io/github/histrio/py-couchdb)
 [![Documentation Status](https://readthedocs.org/projects/pycouchdb/badge/?version=latest)](https://pycouchdb.readthedocs.io/en/latest/?badge=latest)
 
 
