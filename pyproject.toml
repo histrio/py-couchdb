@@ -3,7 +3,9 @@ name = "pycouchdb"
 version = "1.16.0"
 description = "Modern pure python CouchDB Client."
 authors = [
-    {name = "Andrey Antukh", email = "niwi@niwi.be"},
+    {name = "Andrey Antukh", email = "niwi@niwi.be"}
+]
+maintainers = [
     {name = "Rinat Sabitov", email = "rinat.sabitov@gmail.com"}
 ]
 license = {text = "BSD-3-Clause"}
