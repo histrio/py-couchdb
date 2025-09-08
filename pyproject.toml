@@ -8,14 +8,14 @@ authors = [
 ]
 license = {text = "BSD-3-Clause"}
 readme = "README.md"
-requires-python = ">=3.8.1"
+requires-python = ">=3.9"
 keywords = ["couchdb", "database"]
 classifiers = [
     "Topic :: Utilities",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
 dependencies = [
-    "requests>=2.28",
+    "requests>=2.32.5",
     "chardet>=5.2.0"
 ]
 
@@ -26,10 +26,10 @@ Repository = "https://github.com/histrio/py-couchdb"
 
 [project.optional-dependencies]
 dev = [
-    "responses>=0.22",
-    "flake8>=6.0",
-    "pytest>=7.2",
-    "pytest-cov>=4.0"
+    "responses>=0.25.0",
+    "flake8>=7.0",
+    "pytest>=8.0",
+    "pytest-cov>=5.0"
 ]
 
 [build-system]
