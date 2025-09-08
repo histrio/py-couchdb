@@ -8,12 +8,56 @@ on:
   workflow_dispatch:
 
 jobs:
-  ci:
+  unit-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --extra dev
+      - name: Run unit tests
+        run: uv run pytest -v -m unit
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --extra dev
+      - name: Run unit tests with coverage
+        run: uv run pytest -v -m unit --cov=pycouchdb --cov-report=xml --cov-report=html --cov-report=term-missing
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration-tests:
     strategy:
       fail-fast: false
       max-parallel: 3
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.9", "3.11", "3.13"]
         couchdb-version: ["2.3", "3.2", "3.3", "3.4", "3.5", "latest"]
 
     runs-on: ubuntu-latest
@@ -27,20 +71,16 @@ jobs:
         with:
           version: "latest"
       - name: Set up CouchDB
-        run: docker run --name couchdb-test-${{ matrix.couchdb-version }} -p 5984:5984 -e COUCHDB_USER=admin -e COUCHDB_PASSWORD=password -d couchdb:${{ matrix.couchdb-version }}
+        run: |
+          docker run --name couchdb-test-${{ matrix.couchdb-version }} \
+            -p 5984:5984 \
+            -e COUCHDB_USER=admin \
+            -e COUCHDB_PASSWORD=password \
+            -d couchdb:${{ matrix.couchdb-version }}
+          # Wait for CouchDB to be ready
+          sleep 10
+          # Test connection
+          curl -f http://admin:password@localhost:5984/ || exit 1
       - run: uv sync --extra dev
-      - run: uv run pytest -v ./test/test_integration.py
-
-  tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
-        with:
-          python-version: "3.11"
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "latest"
-      - run: uv sync --extra dev
-      - run: uv run pytest -v --doctest-modules --cov pycouchdb ./test/test_functional.py
+      - name: Run integration tests
+        run: uv run pytest -v -m integration test/integration/

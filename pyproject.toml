@@ -28,10 +28,105 @@ Repository = "https://github.com/histrio/py-couchdb"
 
 [project.optional-dependencies]
 dev = [
+    # Core testing framework
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "pytest-html>=4.0.0",
+    "pytest-xdist>=3.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-timeout>=2.1.0",
+    
+    # HTTP mocking
     "responses>=0.25.0",
-    "flake8>=7.0",
-    "pytest>=8.0",
-    "pytest-cov>=5.0"
+    "requests-mock>=1.11.0",
+    
+    # Code quality tools
+    "flake8>=7.0.0",
+    "mypy>=1.0.0",
+    "bandit>=1.7.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    
+    # Test utilities
+    "factory-boy>=3.3.0",
+    "faker>=19.0.0",
+    "freezegun>=1.2.0",
+    
+    # Coverage reporting
+    "coverage>=7.0.0",
+    
+    # Performance testing
+    "pytest-benchmark>=4.0.0",
+    
+    # Documentation testing
+    "pytest-doctestplus>=0.13.0"
+]
+
+[tool.pytest.ini_options]
+# Pytest configuration for pycouchdb tests
+
+# Test discovery
+testpaths = ["test"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+# Output options
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+    "--disable-warnings",
+    "--color=yes",
+    "--durations=10"
+]
+
+# Markers
+markers = [
+    "unit: Unit tests that don't require external dependencies",
+    "integration: Integration tests that may require external services",
+    "slow: Tests that take a long time to run",
+    "requires_couchdb: Tests that require a running CouchDB instance",
+    "network: Tests that require network access"
+]
+
+# Minimum version
+minversion = "6.0"
+
+# Test timeout (in seconds)
+timeout = 300
+
+# Coverage options (if pytest-cov is installed)
+# addopts = ["--cov=pycouchdb", "--cov-report=html", "--cov-report=term-missing"]
+
+# Logging
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+# Warnings
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::UserWarning:requests.*"
+]
+
+# Test paths
+norecursedirs = [
+    ".git",
+    ".tox",
+    "dist",
+    "build",
+    "*.egg",
+    ".eggs",
+    "__pycache__",
+    ".pytest_cache",
+    ".coverage",
+    "htmlcov",
+    ".venv",
+    "venv",
+    "env"
 ]
 
 [build-system]
