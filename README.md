@@ -1,6 +1,6 @@
 # py-couchdb
 
-[![CI](https://github.com/histrio/py-couchdb/actions/workflows/main.yml/badge.svg?branch=no-py2)](https://github.com/histrio/py-couchdb/actions/workflows/main.yml)
+[![CI](https://github.com/histrio/py-couchdb/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/histrio/py-couchdb/actions/workflows/main.yml)
 ![PyPI](https://img.shields.io/pypi/v/pycouchdb)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/pycouchdb)
 [![Coverage Status](https://coveralls.io/repos/github/histrio/py-couchdb/badge.svg?branch=master)](https://coveralls.io/github/histrio/py-couchdb?branch=master)
@@ -13,7 +13,7 @@ Modern pure python [CouchDB](https://couchdb.apache.org/) Client.
 Currently there are several libraries in python to connect to couchdb. **Why one more?**
 It's very simple.
 
-All seems not be maintained, all libraries used standard Python libraries for http requests, and are not compatible with python3.
+All seems not be maintained, all libraries used standard Python libraries for http requests.
 
 
 

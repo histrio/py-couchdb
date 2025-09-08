@@ -1,24 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import json
-import sys
+from urllib.parse import unquote as _unquote
+from urllib.parse import urlunsplit, urlsplit
+from functools import reduce
 
-
-if sys.version_info[0] == 3:
-    from urllib.parse import unquote as _unquote
-    from urllib.parse import urlunsplit, urlsplit
-
-    string_type = str
-    bytes_type = bytes
-
-    from functools import reduce
-
-else:
-    from urllib import unquote as _unquote
-    from urlparse import urlunsplit, urlsplit
-
-    string_type = unicode  # noqa: F821
-    bytes_type = str
+string_type = str
+bytes_type = bytes
 
 URLSPLITTER = '/'
 
