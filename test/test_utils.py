@@ -34,6 +34,38 @@ class TestUtils:
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials == ('joe@example.com', 'secret')
 
+    def test_extract_credentials_password_with_colon(self):
+        """Test extracting credentials from URL with password containing colons."""
+        url = 'http://user:pass:word@localhost:5984/_config/'
+        clean_url, credentials = utils.extract_credentials(url)
+        
+        assert clean_url == 'http://localhost:5984/_config/'
+        assert credentials == ('user', 'pass:word')
+
+    def test_extract_credentials_password_with_multiple_colons(self):
+        """Test extracting credentials from URL with password containing multiple colons."""
+        url = 'http://user:pass:word:with:colons@localhost:5984/_config/'
+        clean_url, credentials = utils.extract_credentials(url)
+        
+        assert clean_url == 'http://localhost:5984/_config/'
+        assert credentials == ('user', 'pass:word:with:colons')
+
+    def test_extract_credentials_encoded_password_with_colon(self):
+        """Test extracting credentials from URL with encoded password containing colons."""
+        url = 'http://user:pass%3Aword@localhost:5984/_config/'
+        clean_url, credentials = utils.extract_credentials(url)
+        
+        assert clean_url == 'http://localhost:5984/_config/'
+        assert credentials == ('user', 'pass:word')
+
+    def test_extract_credentials_invalid_format(self):
+        """Test extracting credentials from URL with invalid credential format."""
+        url = 'http://user@localhost:5984/_config/'
+        clean_url, credentials = utils.extract_credentials(url)
+        
+        assert clean_url == 'http://localhost:5984/_config/'
+        assert credentials is None
+
     def test_urljoin_simple(self):
         """Test simple URL joining."""
         result = utils.urljoin('http://localhost:5984/', 'test')

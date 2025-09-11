@@ -6,29 +6,43 @@ import uuid
 import copy
 import mimetypes
 import warnings
+from typing import Any, Dict, List, Optional, Union, Iterator, Callable, TYPE_CHECKING
 
 from . import utils
 from . import feedreader
 from . import exceptions as exp
 from .resource import Resource
+from .types import (
+    Json, Document, Row, BulkItem, ServerInfo, DatabaseInfo, 
+    ChangeResult, ViewResult, Credentials, AuthMethod, DocId, Rev
+)
 
-DEFAULT_BASE_URL = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
+# Type alias for feed reader parameter
+FeedReader = Union[Callable[[Dict[str, Any]], None], feedreader.BaseFeedReader]
 
 
-def _id_to_path(_id):
+DEFAULT_BASE_URL: str = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
+
+
+def _id_to_path(_id: str) -> List[str]:
     if _id[:1] == "_":
         return _id.split("/", 1)
     return [_id]
 
 
-def _listen_feed(object, node, feed_reader, **kwargs):
+def _listen_feed(object: Any, node: str, feed_reader: FeedReader, **kwargs: Any) -> None:
     if not callable(feed_reader):
         raise exp.UnexpectedError("feed_reader must be callable or class")
 
     if isinstance(feed_reader, feedreader.BaseFeedReader):
         reader = feed_reader(object)
     else:
-        reader = feedreader.SimpleFeedReader()(object, feed_reader)
+        def wrapped_callback(message: Dict[str, Any], db: Any) -> None:
+            try:
+                feed_reader(message, db)  # type: ignore[call-arg]
+            except TypeError:
+                feed_reader(message)
+        reader = feedreader.SimpleFeedReader()(object, wrapped_callback)
 
     # Possible options: "continuous", "longpoll"
     kwargs.setdefault("feed", "continuous")
@@ -47,7 +61,7 @@ def _listen_feed(object, node, feed_reader, **kwargs):
         reader.on_close()
 
 
-class _StreamResponse(object):
+class _StreamResponse:
     """
     Proxy object for python-requests stream response.
 
@@ -55,27 +69,27 @@ class _StreamResponse(object):
     http://docs.python-requests.org/en/latest/user/advanced/#streaming-requests
     """
 
-    def __init__(self, response):
+    def __init__(self, response: Any) -> None:
         self._response = response
 
-    def iter_content(self, chunk_size=1, decode_unicode=False):
+    def iter_content(self, chunk_size: int = 1, decode_unicode: bool = False) -> Iterator[bytes]:
         return self._response.iter_content(chunk_size=chunk_size,
                                            decode_unicode=decode_unicode)
 
-    def iter_lines(self, chunk_size=512, decode_unicode=None):
+    def iter_lines(self, chunk_size: int = 512, decode_unicode: Optional[bool] = None) -> Iterator[bytes]:
         return self._response.iter_lines(chunk_size=chunk_size,
                                          decode_unicode=decode_unicode)
 
     @property
-    def raw(self):
+    def raw(self) -> Any:
         return self._response.raw
 
     @property
-    def url(self):
+    def url(self) -> str:
         return self._response.url
 
 
-class Server(object):
+class Server:
     """
     Class that represents a couchdb connection.
 
@@ -95,8 +109,8 @@ class Server(object):
 
     """
 
-    def __init__(self, base_url=DEFAULT_BASE_URL, full_commit=True,
-                 authmethod="basic", verify=False):
+    def __init__(self, base_url: str = DEFAULT_BASE_URL, full_commit: bool = True,
+                 authmethod: AuthMethod = "basic", verify: bool = False) -> None:
 
         self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
@@ -104,10 +118,10 @@ class Server(object):
                                  authmethod=authmethod,
                                  verify=verify)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<CouchDB Server "{}">'.format(self.base_url)
 
-    def __contains__(self, name):
+    def __contains__(self, name: str) -> bool:
         try:
             self.resource.head(name)
         except exp.NotFound:
@@ -115,15 +129,19 @@ class Server(object):
         else:
             return True
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         (r, result) = self.resource.get('_all_dbs')
+        if result is None:
+            return iter([])
         return iter(result)
 
-    def __len__(self):
+    def __len__(self) -> int:
         (r, result) = self.resource.get('_all_dbs')
+        if result is None:
+            return 0
         return len(result)
 
-    def info(self):
+    def info(self) -> ServerInfo:
         """
         Get server info.
 
@@ -131,9 +149,11 @@ class Server(object):
         :rtype: dict
         """
         (r, result) = self.resource.get()
+        if result is None:
+            return {}
         return result
 
-    def delete(self, name):
+    def delete(self, name: str) -> None:
         """
         Delete some database.
 
@@ -144,7 +164,7 @@ class Server(object):
 
         self.resource.delete(name)
 
-    def database(self, name):
+    def database(self, name: str) -> "Database":
         """
         Get a database instance.
 
@@ -166,11 +186,13 @@ class Server(object):
     # def config(self):
     #     pass
 
-    def version(self):
+    def version(self) -> str:
         """
         Get the current version of a couchdb server.
         """
         (resp, result) = self.resource.get()
+        if result is None:
+            return ""
         return result["version"]
 
     # TODO: Stats in 2.0 are applicable for nodes only
@@ -178,7 +200,7 @@ class Server(object):
     # def stats(self, name=None):
     #     pass
 
-    def create(self, name):
+    def create(self, name: str) -> Optional["Database"]:
         """
         Create a database.
 
@@ -190,8 +212,9 @@ class Server(object):
         (resp, result) = self.resource.put(name)
         if resp.status_code in (200, 201):
             return self.database(name)
+        return None
 
-    def replicate(self, source, target, **kwargs):
+    def replicate(self, source: str, target: str, **kwargs: Any) -> Dict[str, Any]:
         """
         Replicate the source database to the target one.
 
@@ -201,15 +224,17 @@ class Server(object):
         :param target: full URL to the target database
         """
 
-        data = {'source': source, 'target': target}
-        data.update(kwargs)
+        data_dict = {'source': source, 'target': target}
+        data_dict.update(kwargs)
 
-        data = utils.force_bytes(json.dumps(data))
+        data = utils.force_bytes(json.dumps(data_dict))
 
         (resp, result) = self.resource.post('_replicate', data=data)
+        if result is None:
+            return {}
         return result
 
-    def changes_feed(self, feed_reader, **kwargs):
+    def changes_feed(self, feed_reader: FeedReader, **kwargs: Any) -> None:
         """
         Subscribe to changes feed of the whole CouchDB server.
 
@@ -226,42 +251,44 @@ class Server(object):
         _listen_feed(object, "_db_updates", feed_reader, **kwargs)
 
 
-class Database(object):
+class Database:
     """
     Class that represents a couchdb database.
     """
 
-    def __init__(self, resource, name):
+    def __init__(self, resource: Resource, name: str) -> None:
         self.resource = resource
         self.name = name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return '<CouchDB Database "{}">'.format(self.name)
 
-    def __contains__(self, doc_id):
+    def __contains__(self, doc_id: str) -> bool:
         try:
             (resp, result) = self.resource.head(_id_to_path(doc_id))
             return resp.status_code < 206
         except exp.NotFound:
             return False
 
-    def config(self):
+    def config(self) -> DatabaseInfo:
         """
         Get database status data such as document count, update sequence etc.
         :return: dict
         """
         (resp, result) = self.resource.get()
+        if result is None:
+            return {}
         return result
 
-    def __nonzero__(self):
+    def __nonzero__(self) -> bool:
         """Is the database available"""
         resp, _ = self.resource.head()
         return resp.status_code == 200
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.config()['doc_count']
 
-    def delete(self, doc_or_id):
+    def delete(self, doc_or_id: Union[Document, str]) -> None:
         """
         Delete document by id.
 
@@ -289,7 +316,7 @@ class Database(object):
         (r, result) = resource.delete(
             params={"rev": r.headers["etag"].strip('"')})
 
-    def delete_bulk(self, docs, transaction=True):
+    def delete_bulk(self, docs: List[Document], transaction: bool = True) -> List[BulkItem]:
         """
         Delete a bulk of documents.
 
@@ -311,13 +338,16 @@ class Database(object):
         (resp, results) = self.resource.post(
             "_bulk_docs", data=data, params=params)
 
+        if results is None:
+            return []
+
         for result, doc in zip(results, _docs):
             if "error" in result:
                 raise exp.Conflict("one or more docs are not saved")
 
         return results
 
-    def get(self, doc_id, params=None, **kwargs):
+    def get(self, doc_id: str, params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Document:
         """
         Get a document by id.
 
@@ -343,9 +373,11 @@ class Database(object):
         params.update(kwargs)
 
         (resp, result) = self.resource(*_id_to_path(doc_id)).get(params=params)
+        if result is None:
+            return {}
         return result
 
-    def save(self, doc, batch=False):
+    def save(self, doc: Document, batch: bool = False) -> Document:
         """
         Save or update a document.
 
@@ -373,14 +405,17 @@ class Database(object):
             data=data, params=params)
 
         if resp.status_code == 409:
-            raise exp.Conflict(result['reason'])
+            if result is not None and 'reason' in result:
+                raise exp.Conflict(result['reason'])
+            else:
+                raise exp.Conflict("Conflict")
 
-        if "rev" in result and result["rev"] is not None:
+        if result is not None and "rev" in result and result["rev"] is not None:
             _doc["_rev"] = result["rev"]
 
         return _doc
 
-    def save_bulk(self, docs, try_setting_ids=True, transaction=True):
+    def save_bulk(self, docs: List[Document], try_setting_ids: bool = True, transaction: bool = True) -> List[Document]:
         """
         Save a bulk of documents.
 
@@ -409,13 +444,14 @@ class Database(object):
         (resp, results) = self.resource.post("_bulk_docs", data=data,
                                              params=params)
 
-        for result, doc in zip(results, _docs):
-            if "rev" in result:
-                doc['_rev'] = result['rev']
+        if results is not None:
+            for result, doc in zip(results, _docs):
+                if "rev" in result:
+                    doc['_rev'] = result['rev']
 
         return _docs
 
-    def all(self, wrapper=None, flat=None, as_list=False, **kwargs):
+    def all(self, wrapper: Optional[Callable[[Any], Any]] = None, flat: Optional[str] = None, as_list: bool = False, **kwargs: Any) -> Union[Iterator[Any], List[Any]]:
         """
         Execute a builtin view for get all documents.
 
@@ -438,8 +474,8 @@ class Database(object):
         data = None
 
         if "keys" in params:
-            data = {"keys": params.pop("keys")}
-            data = utils.force_bytes(json.dumps(data))
+            data_dict = {"keys": params.pop("keys")}
+            data = utils.force_bytes(json.dumps(data_dict))
 
         params = utils.encode_view_options(params)
         if data:
@@ -448,13 +484,18 @@ class Database(object):
         else:
             (resp, result) = self.resource.get("_all_docs", params=params)
 
+        if result is None:
+            if as_list:
+                return []
+            return iter([])
+
         if wrapper is None:
             wrapper = lambda doc: doc
 
         if flat is not None:
             wrapper = lambda doc: doc[flat]
 
-        def _iterate():
+        def _iterate() -> Iterator[Any]:
             for row in result["rows"]:
                 yield wrapper(row)
 
@@ -462,30 +503,36 @@ class Database(object):
             return list(_iterate())
         return _iterate()
 
-    def cleanup(self):
+    def cleanup(self) -> Dict[str, Any]:
         """
         Execute a cleanup operation.
         """
         (r, result) = self.resource('_view_cleanup').post()
+        if result is None:
+            return {}
         return result
 
-    def commit(self):
+    def commit(self) -> Dict[str, Any]:
         """
         Send commit message to server.
         """
         (resp, result) = self.resource.post('_ensure_full_commit')
+        if result is None:
+            return {}
         return result
 
-    def compact(self):
+    def compact(self) -> Dict[str, Any]:
         """
         Send compact message to server. Compacting write-heavy databases
         should be avoided, otherwise the process may not catch up with
         the writes. Read load has no effect.
         """
         (r, result) = self.resource("_compact").post()
+        if result is None:
+            return {}
         return result
 
-    def compact_view(self, ddoc):
+    def compact_view(self, ddoc: str) -> Dict[str, Any]:
         """
         Execute compact over design view.
 
@@ -493,9 +540,11 @@ class Database(object):
             if a view does not exists.
         """
         (r, result) = self.resource("_compact", ddoc).post()
+        if result is None:
+            return {}
         return result
 
-    def revisions(self, doc_id, status='available', params=None, **kwargs):
+    def revisions(self, doc_id: str, status: str = 'available', params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Iterator[Document]:
         """
         Get all revisions of one document.
 
@@ -523,13 +572,16 @@ class Database(object):
         if resp.status_code == 404:
             raise exp.NotFound("Document id `{0}` not found".format(doc_id))
 
+        if result is None or '_revs_info' not in result:
+            return
+
         for rev in result['_revs_info']:
             if status and rev['status'] == status:
                 yield self.get(doc_id, rev=rev['rev'])
             elif not status:
                 yield self.get(doc_id, rev=rev['rev'])
 
-    def delete_attachment(self, doc, filename):
+    def delete_attachment(self, doc: Document, filename: str) -> Document:
         """
         Delete attachment by filename from document.
 
@@ -551,9 +603,13 @@ class Database(object):
             raise exp.NotFound("filename {0} not found".format(filename))
 
         if resp.status_code > 205:
-            raise exp.Conflict(result['reason'])
+            if result is not None and 'reason' in result:
+                raise exp.Conflict(result['reason'])
+            else:
+                raise exp.Conflict("Conflict")
 
-        _doc['_rev'] = result['rev']
+        if result is not None and 'rev' in result:
+            _doc['_rev'] = result['rev']
         try:
             del _doc['_attachments'][filename]
 
