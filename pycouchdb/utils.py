@@ -34,8 +34,11 @@ def extract_credentials(url: str) -> Tuple[str, Optional[Tuple[str, str]]]:
     if '@' in netloc:
         creds, netloc = netloc.split('@')
         cred_parts = creds.split(':')
-        if len(cred_parts) == 2:
-            credentials: Optional[Tuple[str, str]] = (_unquote(cred_parts[0]), _unquote(cred_parts[1]))
+        if len(cred_parts) >= 2:
+            # Handle passwords containing colons by joining all parts after the first one
+            username = _unquote(cred_parts[0])
+            password = _unquote(':'.join(cred_parts[1:]))
+            credentials: Optional[Tuple[str, str]] = (username, password)
         else:
             credentials = None
         parts_list = list(parts)
