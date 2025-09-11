@@ -17,8 +17,9 @@ from .types import (
     ChangeResult, ViewResult, Credentials, AuthMethod, DocId, Rev
 )
 
-if TYPE_CHECKING:
-    pass
+# Type alias for feed reader parameter
+FeedReader = Union[Callable[[Dict[str, Any]], None], feedreader.BaseFeedReader]
+
 
 DEFAULT_BASE_URL: str = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
 
@@ -29,14 +30,17 @@ def _id_to_path(_id: str) -> List[str]:
     return [_id]
 
 
-def _listen_feed(object: Any, node: str, feed_reader: Union[Callable[[Dict[str, Any]], None], feedreader.BaseFeedReader], **kwargs: Any) -> None:
+def _listen_feed(object: Any, node: str, feed_reader: FeedReader, **kwargs: Any) -> None:
     if not callable(feed_reader):
         raise exp.UnexpectedError("feed_reader must be callable or class")
 
     if isinstance(feed_reader, feedreader.BaseFeedReader):
         reader = feed_reader(object)
     else:
-        reader = feedreader.SimpleFeedReader()(object, feed_reader)
+        # Wrap simple callback to match SimpleFeedReader's expected signature
+        def wrapped_callback(message: Dict[str, Any], db: Any) -> None:
+            feed_reader(message)
+        reader = feedreader.SimpleFeedReader()(object, wrapped_callback)
 
     # Possible options: "continuous", "longpoll"
     kwargs.setdefault("feed", "continuous")
@@ -228,7 +232,7 @@ class Server:
             return {}
         return result
 
-    def changes_feed(self, feed_reader: Union[Callable[[Dict[str, Any]], None], feedreader.BaseFeedReader], **kwargs: Any) -> None:
+    def changes_feed(self, feed_reader: FeedReader, **kwargs: Any) -> None:
         """
         Subscribe to changes feed of the whole CouchDB server.
 
