@@ -37,9 +37,11 @@ def _listen_feed(object: Any, node: str, feed_reader: FeedReader, **kwargs: Any)
     if isinstance(feed_reader, feedreader.BaseFeedReader):
         reader = feed_reader(object)
     else:
-        # Wrap simple callback to match SimpleFeedReader's expected signature
         def wrapped_callback(message: Dict[str, Any], db: Any) -> None:
-            feed_reader(message)
+            try:
+                feed_reader(message, db)  # type: ignore[call-arg]
+            except TypeError:
+                feed_reader(message)
         reader = feedreader.SimpleFeedReader()(object, wrapped_callback)
 
     # Possible options: "continuous", "longpoll"
