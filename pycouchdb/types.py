@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict, List, Any, Optional, TypedDict, Iterator, Iterable, Callable, Protocol
+from typing import Union, Dict, List, Any, Optional, TypedDict, Iterator, Iterable, Callable, Protocol, Tuple
 from typing_extensions import Final
 
 # JSON type alias for all valid JSON values
@@ -76,7 +76,7 @@ class FeedReader(Protocol):
     def on_heartbeat(self) -> None: ...
 
 # Type aliases for common patterns
-Credentials = tuple[str, str]
+Credentials = Tuple[str, str]
 AuthMethod = str
 ViewName = str
 DocId = str
