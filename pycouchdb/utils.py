@@ -4,17 +4,19 @@ import json
 from urllib.parse import unquote as _unquote
 from urllib.parse import urlunsplit, urlsplit
 from functools import reduce
+from typing import Union, Optional, Tuple, List, Dict, Any
+from typing_extensions import Final
 
 string_type = str
 bytes_type = bytes
 
-URLSPLITTER = '/'
+URLSPLITTER: Final[str] = '/'
 
 
 json_encoder = json.JSONEncoder()
 
 
-def extract_credentials(url):
+def extract_credentials(url: str) -> Tuple[str, Optional[Tuple[str, str]]]:
     """
     Extract authentication (user name and password) credentials from the
     given URL.
@@ -31,20 +33,26 @@ def extract_credentials(url):
     netloc = parts[1]
     if '@' in netloc:
         creds, netloc = netloc.split('@')
-        credentials = tuple(_unquote(i) for i in creds.split(':'))
-        parts = list(parts)
-        parts[1] = netloc
+        cred_parts = creds.split(':')
+        if len(cred_parts) == 2:
+            credentials: Optional[Tuple[str, str]] = (_unquote(cred_parts[0]), _unquote(cred_parts[1]))
+        else:
+            credentials = None
+        parts_list = list(parts)
+        parts_list[1] = netloc
+        new_parts = tuple(parts_list)
     else:
         credentials = None
-    return urlunsplit(parts), credentials
+        new_parts = parts
+    return urlunsplit(new_parts), credentials
 
 
-def _join(head, tail):
+def _join(head: str, tail: str) -> str:
     parts = [head.rstrip(URLSPLITTER), tail.lstrip(URLSPLITTER)]
     return URLSPLITTER.join(parts)
 
 
-def urljoin(base, *path):
+def urljoin(base: str, *path: str) -> str:
     """
     Assemble a uri based on a base, any number of path segments, and query
     string parameters.
@@ -74,7 +82,7 @@ def urljoin(base, *path):
     return reduce(_join, path, base)
 
 
-def as_json(response):
+def as_json(response: Any) -> Optional[Union[Dict[str, Any], List[Any], str]]:
     if "application/json" in response.headers['content-type']:
         response_src = response.content.decode('utf-8')
         if response.content != b'':
@@ -84,7 +92,7 @@ def as_json(response):
     return None
 
 
-def _path_from_name(name, type):
+def _path_from_name(name: str, type: str) -> List[str]:
     """
     Expand a 'design/foo' style name to its full path as a list of
     segments.
@@ -100,7 +108,7 @@ def _path_from_name(name, type):
     return ['_design', design, type, name]
 
 
-def encode_view_options(options):
+def encode_view_options(options: Dict[str, Any]) -> Dict[str, Any]:
     """
     Encode any items in the options dict that are sent as a JSON string to a
     view/list function.
@@ -124,13 +132,13 @@ def encode_view_options(options):
     return retval
 
 
-def force_bytes(data, encoding="utf-8"):
+def force_bytes(data: Union[str, bytes], encoding: str = "utf-8") -> bytes:
     if isinstance(data, string_type):
         data = data.encode(encoding)
     return data
 
 
-def force_text(data, encoding="utf-8"):
+def force_text(data: Union[str, bytes], encoding: str = "utf-8") -> str:
     if isinstance(data, bytes_type):
         data = data.decode(encoding)
     return data

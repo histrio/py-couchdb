@@ -2,14 +2,16 @@
 
 import json
 import requests
+from typing import Optional, Tuple, Any, Dict, List, Union
 
 from . import utils
 from . import exceptions
+from .types import Credentials, AuthMethod
 
 
-class Resource(object):
-    def __init__(self, base_url, full_commit=True, session=None,
-                 credentials=None, authmethod="session", verify=False):
+class Resource:
+    def __init__(self, base_url: str, full_commit: bool = True, session: Optional[requests.Session] = None,
+                 credentials: Optional[Credentials] = None, authmethod: AuthMethod = "session", verify: bool = False) -> None:
 
         self.base_url = base_url
 #        self.verify = verify
@@ -27,13 +29,13 @@ class Resource(object):
             self.session = session
         self.session.verify = verify
 
-    def _authenticate(self, credentials, method):
+    def _authenticate(self, credentials: Optional[Credentials], method: AuthMethod) -> None:
         if not credentials:
             return
 
         if method == "session":
-            data = {"name": credentials[0], "password": credentials[1]}
-            data = utils.force_bytes(json.dumps(data))
+            data_dict = {"name": credentials[0], "password": credentials[1]}
+            data = utils.force_bytes(json.dumps(data_dict))
 
             post_url = utils.urljoin(self.base_url, "_session")
             r = self.session.post(post_url, data=data)
@@ -46,14 +48,14 @@ class Resource(object):
         else:
             raise RuntimeError("Invalid authentication method")
 
-    def __call__(self, *path):
+    def __call__(self, *path: str) -> "Resource":
         base_url = utils.urljoin(self.base_url, *path)
         return self.__class__(base_url, session=self.session)
 
-    def _check_result(self, response, result):
+    def _check_result(self, response: requests.Response, result: Optional[Any]) -> None:
         try:
-            error = result.get('error', None)
-            reason = result.get('reason', None)
+            error = result.get('error', None) if result else None
+            reason = result.get('reason', None) if result else None
         except AttributeError:
             error = None
             reason = ''
@@ -70,8 +72,8 @@ class Resource(object):
                 raise exceptions.BadRequest(reason or "Bad request")
             raise exceptions.GenericError(result)
 
-    def request(self, method, path, params=None, data=None,
-                headers=None, stream=False, **kwargs):
+    def request(self, method: str, path: Optional[Union[str, List[str]]] = None, params: Optional[Dict[str, Any]] = None, 
+                data: Optional[Any] = None, headers: Optional[Dict[str, str]] = None, stream: bool = False, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
 
         if headers is None:
             headers = {}
@@ -108,17 +110,17 @@ class Resource(object):
 
         return response, result
 
-    def get(self, path=None, **kwargs):
+    def get(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
         return self.request("GET", path, **kwargs)
 
-    def put(self, path=None, **kwargs):
+    def put(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
         return self.request("PUT", path, **kwargs)
 
-    def post(self, path=None, **kwargs):
+    def post(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
         return self.request("POST", path, **kwargs)
 
-    def delete(self, path=None, **kwargs):
+    def delete(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
         return self.request("DELETE", path, **kwargs)
 
-    def head(self, path=None, **kwargs):
+    def head(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
         return self.request("HEAD", path, **kwargs)
