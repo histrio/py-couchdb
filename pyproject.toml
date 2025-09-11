@@ -132,3 +132,57 @@ norecursedirs = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.17.1",
+    "types-requests>=2.32.4.20250809",
+]
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_unused_ignores = true
+warn_return_any = false
+warn_redundant_casts = true
+show_error_codes = true
+show_column_numbers = true
+show_error_context = true
+pretty = true
+
+# Allow Any only in internal places with explanatory comments
+disallow_any_unimported = true
+disallow_any_expr = false
+disallow_any_decorated = false
+disallow_any_explicit = false
+disallow_any_generics = false
+
+# Additional strict checks
+disallow_untyped_defs = false
+disallow_incomplete_defs = true
+check_untyped_defs = false
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+# Import handling
+ignore_missing_imports = false
+follow_imports = "normal"
+follow_imports_for_stubs = true
+
+# Per-module options
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "test.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+
+[[tool.mypy.overrides]]
+module = "test.integration.*"
+disallow_untyped_defs = false
