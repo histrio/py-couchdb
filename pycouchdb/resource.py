@@ -8,6 +8,12 @@ from . import utils
 from . import exceptions
 from .types import Credentials, AuthMethod
 
+# Type aliases for cleaner HTTP method signatures
+HttpPath = Optional[Union[str, List[str]]]
+HttpParams = Optional[Dict[str, Any]]
+HttpHeaders = Optional[Dict[str, str]]
+HttpResponse = Tuple[requests.Response, Optional[Any]]
+
 
 class Resource:
     def __init__(self, base_url: str, full_commit: bool = True, session: Optional[requests.Session] = None,
@@ -72,8 +78,8 @@ class Resource:
                 raise exceptions.BadRequest(reason or "Bad request")
             raise exceptions.GenericError(result)
 
-    def request(self, method: str, path: Optional[Union[str, List[str]]] = None, params: Optional[Dict[str, Any]] = None, 
-                data: Optional[Any] = None, headers: Optional[Dict[str, str]] = None, stream: bool = False, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
+    def request(self, method: str, path: HttpPath = None, params: HttpParams = None, 
+                data: Optional[Any] = None, headers: HttpHeaders = None, stream: bool = False, **kwargs: Any) -> HttpResponse:
 
         if headers is None:
             headers = {}
@@ -110,17 +116,17 @@ class Resource:
 
         return response, result
 
-    def get(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
+    def get(self, path: HttpPath = None, **kwargs: Any) -> HttpResponse:
         return self.request("GET", path, **kwargs)
 
-    def put(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
+    def put(self, path: HttpPath = None, **kwargs: Any) -> HttpResponse:
         return self.request("PUT", path, **kwargs)
 
-    def post(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
+    def post(self, path: HttpPath = None, **kwargs: Any) -> HttpResponse:
         return self.request("POST", path, **kwargs)
 
-    def delete(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
+    def delete(self, path: HttpPath = None, **kwargs: Any) -> HttpResponse:
         return self.request("DELETE", path, **kwargs)
 
-    def head(self, path: Optional[Union[str, List[str]]] = None, **kwargs: Any) -> Tuple[requests.Response, Optional[Any]]:
+    def head(self, path: HttpPath = None, **kwargs: Any) -> HttpResponse:
         return self.request("HEAD", path, **kwargs)
