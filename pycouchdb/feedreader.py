@@ -65,4 +65,8 @@ class SimpleFeedReader(BaseFeedReader):
 
     def on_message(self, message: Dict[str, Any]) -> None:
         if hasattr(self, 'callback') and self.callback is not None:
-            self.callback(message, db=self.db)
+            try:
+                self.callback(message, db=self.db)
+            except TypeError:
+                # Fallback for callbacks that don't accept db parameter
+                self.callback(message)
