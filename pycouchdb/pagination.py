@@ -82,7 +82,7 @@ def view_pages(
         last_row = rows[page_size - 1]
         startkey = last_row['key']
         startkey_docid = last_row['id']
-        skip = 1  # Skip the row we used as cursor
+        skip = 1  # Skip the row used as the cursor to avoid returning it again (prevents duplicate results in cursor-based pagination)
 
 
 def mango_pages(
@@ -144,12 +144,3 @@ def mango_pages(
 def _encode_view_params(params: Dict[str, Any]) -> Dict[str, Any]:
     """Encode view parameters using the same logic as the main client."""
     return utils.encode_view_options(params)
-
-
-def _prepare_mango_data(selector: Dict[str, Any], params: Dict[str, Any]) -> bytes:
-    """Prepare Mango query data for HTTP request."""
-    data_dict = {
-        'selector': selector,
-        **params
-    }
-    return utils.force_bytes(json.dumps(data_dict))
