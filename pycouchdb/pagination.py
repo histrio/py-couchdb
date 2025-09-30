@@ -29,6 +29,12 @@ def view_pages(
     This function handles the complexity of CouchDB view pagination by automatically
     managing startkey and startkey_docid parameters for stable pagination.
 
+    .. warning::
+        Pagination with grouped and reduced views (group=true, reduce=true) is
+        inefficient and unreliable. CouchDB must process all preceding groups
+        for skip operations, and total_rows/offset values are inconsistent with
+        reduced output. Consider fetching all results at once for reduced views.
+
     :param fetch: Function that makes the actual HTTP request and returns (response, result)
     :param view: View name (e.g., "design/view")
     :param page_size: Number of rows per page
