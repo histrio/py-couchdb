@@ -82,6 +82,11 @@ ViewName = str
 DocId = str
 Rev = str
 
+# Pagination type aliases
+ViewRows = List[Row]
+MangoDocs = List[Document]
+PageSize = int
+
 # Constants
 DEFAULT_BASE_URL: Final[str] = "http://localhost:5984/"
 DEFAULT_AUTH_METHOD: Final[str] = "basic"
