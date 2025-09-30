@@ -201,3 +201,44 @@ Example:
     ...         print("Feed reader end")
     ...
     >>> db.changes_feed(MyReader())
+
+
+Pagination
+----------
+
+py-couchdb provides convenient pagination functionality for both CouchDB views and Mango queries. This eliminates the need to manually manage `skip` parameters and provides stable, cursor-based pagination.
+
+View Pagination
+~~~~~~~~~~~~~~~
+
+Use `view_pages()` for paginating through CouchDB view results:
+
+.. code-block:: python
+
+    >>> # Paginate through view results
+    >>> for page in db.view_pages("design/view", page_size=10):
+    ...     print(f"Page with {len(page)} rows")
+    ...     for row in page:
+    ...         print(f"  {row['id']}: {row['key']}")
+
+Mango Query Pagination
+~~~~~~~~~~~~~~~~~~~~~~
+
+Use `mango_pages()` for paginating through Mango query results:
+
+.. code-block:: python
+
+    >>> # Paginate through Mango query results
+    >>> selector = {"type": "user", "active": True}
+    >>> for page in db.mango_pages(selector, page_size=10):
+    ...     print(f"Page with {len(page)} documents")
+    ...     for doc in page:
+    ...         print(f"  {doc['_id']}: {doc['name']}")
+
+Key Benefits
+~~~~~~~~~~~
+
+- **Stable pagination**: No duplicate or missing results during concurrent updates
+- **Automatic cursor management**: No manual `skip` parameter handling
+- **Memory efficient**: Process large datasets page by page
+- **Consistent API**: Same interface for both view and Mango pagination
