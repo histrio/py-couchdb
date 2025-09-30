@@ -890,7 +890,7 @@ class Database:
         :param params: Additional query parameters
         :returns: Iterator yielding lists of rows for each page
 
-        .. versionadded: 1.17
+        .. versionadded:: 1.17
         """
         path = utils._path_from_name(design_and_view, '_view')
 
@@ -924,7 +924,7 @@ class Database:
         :param params: Additional query parameters
         :returns: Iterator yielding lists of documents for each page
 
-        .. versionadded: 1.17
+        .. versionadded:: 1.17
         """
         def fetch_mango(params_dict: Dict[str, Any]) -> Tuple[Any, Optional[Dict[str, Any]]]:
             data = utils.force_bytes(json.dumps(params_dict))
