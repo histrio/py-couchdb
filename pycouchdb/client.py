@@ -872,7 +872,7 @@ class Database:
         (resp, result) = self.resource.post("_find", data=data)
 
         if result is None or 'docs' not in result:
-            return iter([])
+            return
 
         for doc in result['docs']:
             yield doc
