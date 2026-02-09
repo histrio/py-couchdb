@@ -62,8 +62,8 @@ def view_pages(
             current_params['startkey_docid'] = startkey_docid
             current_params['skip'] = skip
 
-        # Encode view parameters properly
-        current_params = _encode_view_params(current_params)
+        # Encode view parameters (startkey, key, endkey need to be JSON-encoded for CouchDB)
+        current_params = utils.encode_view_options(current_params)
 
         # Make the request
         response, result = fetch(current_params)
