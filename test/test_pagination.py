@@ -69,7 +69,7 @@ class TestViewPages:
         # Check that second call has correct pagination parameters
         assert fetch_mock.call_count == 2
         second_call_args = fetch_mock.call_args_list[1][0][0]
-        assert second_call_args['startkey'] == '"key2"'  # Last key from first page (JSON-encoded)
+        assert second_call_args['startkey'] == '"key2"'  # Last key from first page (JSON-encoded for CouchDB)
         assert second_call_args['startkey_docid'] == 'doc2'  # Last doc id from first page
         assert second_call_args['skip'] == 1
 

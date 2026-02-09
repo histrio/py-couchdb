@@ -111,13 +111,13 @@ class Server:
     """
 
     def __init__(self, base_url: str = DEFAULT_BASE_URL, full_commit: bool = True,
-                 authmethod: AuthMethod = "basic", verify: bool = False) -> None:
+                 authmethod: AuthMethod = "basic", verify: bool = False, timeout: Optional[float] = None) -> None:
 
         self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
                                  credentials=credentials,
                                  authmethod=authmethod,
-                                 verify=verify)
+                                 verify=verify, timeout=timeout)
 
     def __repr__(self) -> str:
         return '<CouchDB Server "{}">'.format(self.base_url)
