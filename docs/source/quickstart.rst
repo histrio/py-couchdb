@@ -64,7 +64,7 @@ And can remove a database:
 
 
 If you intent remove not existent database, `NotFound` exception is raised. For
-more information see :ref:`Exceptions API <exceptions>`.
+more information see :py:exc:`pycouchdb.exceptions.NotFound`.
 
 .. code-block:: python
 
@@ -142,8 +142,9 @@ And this is a way to make a query using predefined views:
     [{'value': 1, 'key': 'Fooo'}]
 
 
-In order to make query with Python see :ref:`Views <views>` on how to configure
-CouchDB. And this is a way to make a query using predefined views with Python:
+For CouchDB view configuration, see the `CouchDB views documentation
+<https://docs.couchdb.org/en/stable/ddocs/views/index.html>`_. This is a way to
+make a query using predefined views with Python:
 
 .. code-block:: python
 
@@ -236,7 +237,7 @@ Use `mango_pages()` for paginating through Mango query results:
     ...         print(f"  {doc['_id']}: {doc['name']}")
 
 Key Benefits
-~~~~~~~~~~~
+~~~~~~~~~~~~
 
 - **Cursor-based pagination**: Avoids the offset drift caused by ``skip``
 - **Automatic cursor management**: No manual `skip` parameter handling

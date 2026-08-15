@@ -278,7 +278,7 @@ class Server:
         :param feed_reader: callable or :py:class:`~BaseFeedReader`
                             instance
 
-        .. [Ref] http://docs.couchdb.org/en/1.6.1/api/server/common.html#db-updates
+        .. seealso:: https://docs.couchdb.org/en/stable/api/server/common.html#db-updates
         .. versionadded: 1.10
         """
         object = self

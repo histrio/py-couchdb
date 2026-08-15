@@ -1,6 +1,6 @@
 [project]
 name = "pycouchdb"
-version = "1.16.0"
+version = "1.17.0"
 description = "Modern pure python CouchDB Client."
 authors = [
     {name = "Andrey Antukh", email = "niwi@niwi.be"}
@@ -27,6 +27,12 @@ Documentation = "https://pycouchdb.readthedocs.io/en/latest/"
 Repository = "https://github.com/histrio/py-couchdb"
 
 [project.optional-dependencies]
+docs = [
+    "sphinx>=7.4,<9",
+]
+release = [
+    "twine>=6.0",
+]
 dev = [
     # Core testing framework
     "pytest>=8.0.0",
@@ -35,29 +41,29 @@ dev = [
     "pytest-xdist>=3.0.0",
     "pytest-mock>=3.10.0",
     "pytest-timeout>=2.1.0",
-    
+
     # HTTP mocking
     "responses>=0.25.0",
     "requests-mock>=1.11.0",
-    
+
     # Code quality tools
     "flake8>=7.0.0",
     "mypy>=1.0.0",
     "bandit>=1.7.0",
     "black>=23.0.0",
     "isort>=5.12.0",
-    
+
     # Test utilities
     "factory-boy>=3.3.0",
     "faker>=19.0.0",
     "freezegun>=1.2.0",
-    
+
     # Coverage reporting
     "coverage>=7.0.0",
-    
+
     # Performance testing
     "pytest-benchmark>=4.0.0",
-    
+
     # Documentation testing
     "pytest-doctestplus>=0.13.0"
 ]

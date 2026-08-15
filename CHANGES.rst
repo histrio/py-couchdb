@@ -2,6 +2,17 @@
 Changelog
 =========
 
+Version 1.17.0 (unreleased)
+--------------------------
+
+- Backward incompatibility: Python 3.8 is no longer supported; Python 3.9 or
+  later is required.
+- Added cursor-based pagination APIs for CouchDB views and Mango queries.
+- Added opt-in, privacy-conscious standard-library logging for HTTP and
+  database operations, including bulk-operation summaries.
+- Modernized package metadata, dependencies, type annotations, test coverage,
+  and CI compatibility testing.
+
 Version 1.14
 ------------
 
