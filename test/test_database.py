@@ -1198,6 +1198,30 @@ class TestDatabase:
         params = call_args[1]['params']
         assert params['limit'] == 3  # page_size + 1
 
+    def test_database_view_pages_encodes_cursor_once(self):
+        """The client fetcher must not re-encode paginator view parameters."""
+        mock_resource = Mock()
+        mock_view_resource = Mock()
+        mock_resource.return_value = mock_view_resource
+        mock_view_resource.get.side_effect = [
+            (Mock(), {
+                'rows': [
+                    {'id': 'doc1', 'key': 'Alice', 'value': None},
+                    {'id': 'doc2', 'key': 'Bob', 'value': None},
+                    {'id': 'doc3', 'key': 'Carol', 'value': None},
+                ],
+            }),
+            (Mock(), {'rows': [{'id': 'doc3', 'key': 'Carol', 'value': None}]}),
+        ]
+
+        pages = list(client.Database(mock_resource, "testdb").view_pages("test/view", 2))
+
+        assert [[row['id'] for row in page] for page in pages] == [['doc1', 'doc2'], ['doc3']]
+        second_params = mock_view_resource.get.call_args_list[1].kwargs['params']
+        assert second_params['startkey'] == '"Bob"'
+        assert second_params['startkey_docid'] == 'doc2'
+        assert second_params['skip'] == 1
+
     def test_database_mango_pages_fetch_function(self):
         """Test that mango_pages creates correct fetch function."""
         mock_resource = Mock()

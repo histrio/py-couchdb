@@ -112,6 +112,15 @@ class TestViewPages:
         assert call_args['descending'] is True
         assert call_args['limit'] == 3
 
+    @pytest.mark.parametrize('page_size', [0, -1, 1.5, True, '2'])
+    def test_view_pages_rejects_invalid_page_size(self, page_size):
+        fetch_mock = Mock()
+
+        with pytest.raises(ValueError, match="page_size must be a positive integer"):
+            list(view_pages(fetch_mock, "test/view", page_size))
+
+        fetch_mock.assert_not_called()
+
 
 class TestMangoPages:
     """Test mango_pages function."""
@@ -242,3 +251,12 @@ class TestMangoPages:
         assert len(pages) == 1
         assert len(pages[0]) == 1
         fetch_mock.assert_called_once()  # Should not make second call
+
+    @pytest.mark.parametrize('page_size', [0, -1, 1.5, True, '2'])
+    def test_mango_pages_rejects_invalid_page_size(self, page_size):
+        fetch_mock = Mock()
+
+        with pytest.raises(ValueError, match="page_size must be a positive integer"):
+            list(mango_pages(fetch_mock, {'name': {'$exists': True}}, page_size))
+
+        fetch_mock.assert_not_called()

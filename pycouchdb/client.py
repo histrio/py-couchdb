@@ -900,12 +900,10 @@ class Database:
                 data_dict = {"keys": params_dict.pop('keys')}
                 data = utils.force_bytes(json.dumps(data_dict))
 
-            encoded_params = utils.encode_view_options(params_dict)
-
             if data:
-                (resp, result) = self.resource(*path).post(params=encoded_params, data=data)
+                (resp, result) = self.resource(*path).post(params=params_dict, data=data)
             else:
-                (resp, result) = self.resource(*path).get(params=encoded_params)
+                (resp, result) = self.resource(*path).get(params=params_dict)
 
             return resp, result
 

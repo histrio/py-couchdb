@@ -7,14 +7,19 @@ This module provides convenient pagination functionality for both CouchDB views
 and Mango queries, handling the complexity of cursor-based pagination internally.
 """
 
-from typing import Any, Dict, List, Iterator, Optional, Callable, Union, Tuple
-import json
+from typing import Any, Dict, Iterator, Optional, Callable, Tuple
 import copy
 
 from . import utils
-from .types import Row, Document, Json, ViewRows, MangoDocs, PageSize
+from .types import ViewRows, MangoDocs, PageSize
 
 __all__ = ['view_pages', 'mango_pages', 'ViewRows', 'MangoDocs', 'PageSize']
+
+
+def _validate_page_size(page_size: PageSize) -> None:
+    """Validate the public pagination page size."""
+    if isinstance(page_size, bool) or not isinstance(page_size, int) or page_size < 1:
+        raise ValueError("page_size must be a positive integer")
 
 
 def view_pages(
@@ -41,6 +46,8 @@ def view_pages(
     :param params: Additional query parameters
     :returns: Iterator yielding lists of rows for each page
     """
+    _validate_page_size(page_size)
+
     if params is None:
         params = {}
 
@@ -88,7 +95,7 @@ def view_pages(
         last_row = rows[page_size - 1]
         startkey = last_row['key']
         startkey_docid = last_row['id']
-        skip = 1  # Skip the row used as the cursor to avoid returning it again (prevents duplicate results in cursor-based pagination)
+        skip = 1  # Skip cursor row to avoid duplicates.
 
 
 def mango_pages(
@@ -109,6 +116,8 @@ def mango_pages(
     :param params: Additional query parameters
     :returns: Iterator yielding lists of documents for each page
     """
+    _validate_page_size(page_size)
+
     if params is None:
         params = {}
 
@@ -145,8 +154,3 @@ def mango_pages(
         bookmark = result.get('bookmark')
         if not bookmark:
             break
-
-
-def _encode_view_params(params: Dict[str, Any]) -> Dict[str, Any]:
-    """Encode view parameters using the same logic as the main client."""
-    return utils.encode_view_options(params)
