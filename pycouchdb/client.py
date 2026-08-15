@@ -6,16 +6,13 @@ import uuid
 import copy
 import mimetypes
 import warnings
-from typing import Any, Dict, List, Optional, Union, Iterator, Callable, TYPE_CHECKING, Tuple
+from typing import Any, Dict, List, Optional, Union, Iterator, Callable, Tuple
 
 from . import utils
 from . import feedreader
 from . import exceptions as exp
 from .resource import Resource
-from .types import (
-    Json, Document, Row, BulkItem, ServerInfo, DatabaseInfo,
-    ChangeResult, ViewResult, Credentials, AuthMethod, DocId, Rev
-)
+from .types import Document, BulkItem, ServerInfo, DatabaseInfo, AuthMethod
 from .pagination import view_pages, mango_pages, ViewRows, MangoDocs, PageSize
 
 # Type alias for feed reader parameter
