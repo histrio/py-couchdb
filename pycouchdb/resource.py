@@ -46,7 +46,7 @@ class Resource:
             data = utils.force_bytes(json.dumps(data_dict))
 
             post_url = utils.urljoin(self.base_url, "_session")
-            r = self.session.post(post_url, data=data)
+            r = self.session.post(post_url, data=data, timeout=self.timeout)
             if r.status_code != 200:
                 raise exceptions.AuthenticationFailed()
 
