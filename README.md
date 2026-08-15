@@ -46,6 +46,24 @@ pip install pycouchdb
 
 Documentation is available at http://pycouchdb.readthedocs.org.
 
+## Logging
+
+py-couchdb is silent by default. Enable its standard-library logger from your
+application when needed:
+
+```python
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logging.getLogger("pycouchdb").setLevel(logging.DEBUG)
+```
+
+DEBUG records include safe HTTP and database-operation metadata; INFO records
+summarize bulk results. Request and response bodies, credentials, headers,
+hostnames, and query parameter values are never logged. See the
+[logging guide](https://pycouchdb.readthedocs.io/en/latest/logging.html) for
+formatting and `dictConfig` examples.
+
 
 ## Test
 

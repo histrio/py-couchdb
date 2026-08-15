@@ -14,12 +14,48 @@ from . import exceptions as exp
 from .resource import Resource
 from .types import Document, BulkItem, ServerInfo, DatabaseInfo, AuthMethod
 from .pagination import view_pages, mango_pages, ViewRows, MangoDocs, PageSize
+from ._logging import logger
 
 # Type alias for feed reader parameter
 FeedReader = Union[Callable[[Dict[str, Any]], None], feedreader.BaseFeedReader]
 
 
 DEFAULT_BASE_URL: str = os.environ.get('COUCHDB_URL', 'http://localhost:5984/')
+
+
+def _log_database_operation(operation: str, database: str, **details: Any) -> None:
+    """Log non-payload context for a public database operation."""
+    fields = " ".join(
+        "{0}={1}".format(name, value)
+        for name, value in details.items()
+        if value is not None
+    )
+    logger.debug("database operation=%s database=%s%s", operation, database,
+                 " " + fields if fields else "")
+
+
+def _log_bulk_result(operation: str, requested: int, results: Any) -> None:
+    """Log aggregate bulk outcome without exposing result payloads."""
+    conflicts = 0
+    errors = 0
+    if isinstance(results, list):
+        for result in results:
+            if "error" not in result:
+                continue
+            if result["error"] == "conflict":
+                conflicts += 1
+            else:
+                errors += 1
+        ok = len(results) - conflicts - errors
+    else:
+        ok = 0
+        if isinstance(results, dict) and "error" in results:
+            if results["error"] == "conflict":
+                conflicts = 1
+            else:
+                errors = 1
+    logger.info("bulk_docs operation=%s requested=%d ok=%d conflicts=%d errors=%d",
+                operation, requested, ok, conflicts, errors)
 
 
 def _id_to_path(_id: str) -> List[str]:
@@ -308,6 +344,7 @@ class Database:
         else:
             _id = doc_or_id
 
+        _log_database_operation("delete", self.name, document_id=_id)
         resource = self.resource(*_id_to_path(_id))
 
         (r, result) = resource.head()
@@ -327,19 +364,26 @@ class Database:
         """
 
         _docs = copy.copy(docs)
+        _log_database_operation("delete_bulk", self.name, requested=len(_docs))
         for doc in _docs:
             if "_deleted" not in doc:
                 doc["_deleted"] = True
 
         data = utils.force_bytes(json.dumps({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
-        (resp, results) = self.resource.post(
-            "_bulk_docs", data=data, params=params)
+        (resp, results) = self.resource._request_response(
+            "POST", "_bulk_docs", data=data, params=params)
+
+        _log_bulk_result("delete", len(_docs), results)
 
         if results is None:
             return []
 
+        if not isinstance(results, list):
+            self.resource._check_result(resp, results)
+
         for result, doc in zip(results, _docs):
+            self.resource._check_result(resp, result)
             if "error" in result:
                 raise exp.Conflict("one or more docs are not saved")
 
@@ -369,6 +413,7 @@ class Database:
             params = {}
 
         params.update(kwargs)
+        _log_database_operation("get", self.name, document_id=doc_id)
 
         (resp, result) = self.resource(*_id_to_path(doc_id)).get(params=params)
         if result is None:
@@ -392,6 +437,8 @@ class Database:
         _doc = copy.copy(doc)
         if "_id" not in _doc:
             _doc['_id'] = uuid.uuid4().hex
+
+        _log_database_operation("save", self.name, document_id=_doc['_id'])
 
         if batch:
             params = {'batch': 'ok'}
@@ -429,6 +476,7 @@ class Database:
         """
 
         _docs = copy.deepcopy(docs)
+        _log_database_operation("save_bulk", self.name, requested=len(_docs))
 
         # Insert _id field if it not exists and try_setting_ids is true
         if try_setting_ids:
@@ -439,13 +487,20 @@ class Database:
         data = utils.force_bytes(json.dumps({"docs": _docs}))
         params = {"all_or_nothing": "true" if transaction else "false"}
 
-        (resp, results) = self.resource.post("_bulk_docs", data=data,
-                                             params=params)
+        (resp, results) = self.resource._request_response(
+            "POST", "_bulk_docs", data=data, params=params)
+
+        _log_bulk_result("save", len(_docs), results)
 
         if results is not None:
-            for result, doc in zip(results, _docs):
-                if "rev" in result:
-                    doc['_rev'] = result['rev']
+            if isinstance(results, list):
+                for result in results:
+                    self.resource._check_result(resp, result)
+                for result, doc in zip(results, _docs):
+                    if "rev" in result:
+                        doc['_rev'] = result['rev']
+            else:
+                self.resource._check_result(resp, results)
 
         return _docs
 
@@ -594,6 +649,8 @@ class Database:
         """
 
         _doc = copy.deepcopy(doc)
+        _log_database_operation("delete_attachment", self.name,
+                                document_id=_doc['_id'], filename=filename)
         resource = self.resource(_doc['_id'])
 
         (resp, result) = resource.delete(filename, params={'rev': _doc['_rev']})
@@ -635,6 +692,8 @@ class Database:
 
         params = {"rev": doc["_rev"]}
         params.update(kwargs)
+        _log_database_operation("get_attachment", self.name,
+                                document_id=doc['_id'], filename=filename)
 
         r, result = self.resource(doc['_id']).get(filename, stream=stream,
                                                   params=params)
@@ -673,6 +732,8 @@ class Database:
                 filter(None, mimetypes.guess_type(filename)))
 
         headers = {"Content-Type": content_type}
+        _log_database_operation("put_attachment", self.name,
+                                document_id=doc['_id'], filename=filename)
         resource = self.resource(doc['_id'])
 
         (resp, result) = resource.put(
@@ -803,6 +864,7 @@ class Database:
         :returns: generator object
         """
         params = copy.copy(kwargs)
+        _log_database_operation("query", self.name, view=name)
         path = utils._path_from_name(name, '_view')
         data = None
 
@@ -863,6 +925,7 @@ class Database:
         :returns: Iterator of documents matching the selector
         """
         params = copy.copy(kwargs)
+        _log_database_operation("find", self.name)
         params['selector'] = selector
 
         data = utils.force_bytes(json.dumps(params))

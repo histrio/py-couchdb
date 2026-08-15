@@ -2,6 +2,8 @@
 Unit tests for pycouchdb.client.Database class.
 """
 
+import logging
+
 import pytest
 import json
 from unittest.mock import Mock, patch, call
@@ -244,7 +246,7 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "1-abc"},
             {"ok": True, "id": "doc2", "rev": "1-def"}
         ]
-        mock_resource.post.return_value = (mock_response, [
+        mock_resource._request_response.return_value = (mock_response, [
             {"ok": True, "id": "doc1", "rev": "1-abc"},
             {"ok": True, "id": "doc2", "rev": "1-def"}
         ])
@@ -260,9 +262,9 @@ class TestDatabase:
         assert result[1]["_rev"] == "1-def"
         # The method sends docs without _rev, then adds _rev from response
         expected_docs = [{"name": "doc1", "_id": result[0]["_id"]}, {"name": "doc2", "_id": result[1]["_id"]}]
-        mock_resource.post.assert_called_once_with("_bulk_docs",
-                                                 data=json.dumps({"docs": expected_docs}).encode(),
-                                                 params={"all_or_nothing": "true"})
+        mock_resource._request_response.assert_called_once_with(
+            "POST", "_bulk_docs", data=json.dumps({"docs": expected_docs}).encode(),
+            params={"all_or_nothing": "true"})
 
     def test_database_save_bulk_with_existing_ids(self):
         """Test Database save_bulk method with existing document IDs."""
@@ -273,7 +275,7 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "1-abc"},
             {"ok": True, "id": "doc2", "rev": "1-def"}
         ]
-        mock_resource.post.return_value = (mock_response, [
+        mock_resource._request_response.return_value = (mock_response, [
             {"ok": True, "id": "doc1", "rev": "1-abc"},
             {"ok": True, "id": "doc2", "rev": "1-def"}
         ])
@@ -292,7 +294,7 @@ class TestDatabase:
         mock_response = Mock()
         mock_response.status_code = 201
         mock_response.json.return_value = [{"ok": True, "id": "doc1", "rev": "1-abc"}]
-        mock_resource.post.return_value = (mock_response, [{"ok": True, "id": "doc1", "rev": "1-abc"}])
+        mock_resource._request_response.return_value = (mock_response, [{"ok": True, "id": "doc1", "rev": "1-abc"}])
 
         db = client.Database(mock_resource, "testdb")
         docs = [{"name": "doc1"}]
@@ -300,9 +302,83 @@ class TestDatabase:
 
         # The method sends docs without _rev, then adds _rev from response
         expected_docs = [{"name": "doc1", "_id": result[0]["_id"]}]
-        mock_resource.post.assert_called_once_with("_bulk_docs",
-                                                 data=json.dumps({"docs": expected_docs}).encode(),
-                                                 params={"all_or_nothing": "false"})
+        mock_resource._request_response.assert_called_once_with(
+            "POST", "_bulk_docs", data=json.dumps({"docs": expected_docs}).encode(),
+            params={"all_or_nothing": "false"})
+
+    def test_database_save_bulk_logs_summary(self, caplog):
+        mock_resource = Mock()
+        mock_resource._request_response.return_value = (Mock(status_code=201), [
+            {"ok": True, "id": "doc1", "rev": "1-a"},
+            {"error": "conflict"},
+            {"error": "forbidden"},
+        ])
+        db = client.Database(mock_resource, "testdb")
+
+        caplog.set_level(logging.INFO, logger="pycouchdb")
+        db.save_bulk([{"_id": "doc1"}, {"_id": "doc2"}, {"_id": "doc3"}])
+
+        assert any(
+            record.getMessage() == "bulk_docs operation=save requested=3 ok=1 conflicts=1 errors=1"
+            for record in caplog.records
+        )
+
+    def test_database_delete_bulk_logs_summary_before_conflict(self, caplog):
+        mock_resource = Mock()
+        mock_resource._request_response.return_value = (Mock(status_code=201), [
+            {"ok": True, "id": "doc1", "rev": "2-a"},
+            {"error": "conflict"},
+        ])
+        db = client.Database(mock_resource, "testdb")
+
+        caplog.set_level(logging.INFO, logger="pycouchdb")
+        with pytest.raises(exceptions.Conflict, match="one or more docs are not saved"):
+            db.delete_bulk([{"_id": "doc1"}, {"_id": "doc2"}])
+
+        assert any(
+            record.getMessage() == "bulk_docs operation=delete requested=2 ok=1 conflicts=1 errors=0"
+            for record in caplog.records
+        )
+
+    def test_database_save_bulk_preserves_object_error_validation(self):
+        mock_resource = Mock()
+        response = Mock(status_code=400)
+        result = {"error": "bad_request", "reason": "invalid document"}
+        mock_resource._request_response.return_value = (response, result)
+        mock_resource._check_result.side_effect = exceptions.BadRequest(
+            "invalid document")
+        db = client.Database(mock_resource, "testdb")
+
+        with pytest.raises(exceptions.BadRequest, match="invalid document"):
+            db.save_bulk([{"_id": "doc1"}])
+
+        mock_resource._check_result.assert_called_once_with(response, result)
+
+    def test_database_delete_bulk_preserves_object_error_validation(self):
+        mock_resource = Mock()
+        response = Mock(status_code=400)
+        result = {"error": "bad_request", "reason": "invalid document"}
+        mock_resource._request_response.return_value = (response, result)
+        mock_resource._check_result.side_effect = exceptions.BadRequest(
+            "invalid document")
+        db = client.Database(mock_resource, "testdb")
+
+        with pytest.raises(exceptions.BadRequest, match="invalid document"):
+            db.delete_bulk([{"_id": "doc1"}])
+
+        mock_resource._check_result.assert_called_once_with(response, result)
+
+    def test_database_get_logs_operation_without_params(self, caplog):
+        mock_resource = Mock()
+        mock_resource.return_value.get.return_value = (Mock(status_code=200), {"_id": "doc123"})
+        db = client.Database(mock_resource, "testdb")
+
+        caplog.set_level(logging.DEBUG, logger="pycouchdb")
+        db.get("doc123", token="must-not-be-logged")
+
+        messages = [record.getMessage() for record in caplog.records]
+        assert "database operation=get database=testdb document_id=doc123" in messages
+        assert all("must-not-be-logged" not in message for message in messages)
 
     def test_database_delete_by_id(self):
         """Test Database delete method by document ID."""
@@ -372,7 +448,7 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "2-abc"},
             {"ok": True, "id": "doc2", "rev": "2-def"}
         ]
-        mock_resource.post.return_value = (mock_response, [
+        mock_resource._request_response.return_value = (mock_response, [
             {"ok": True, "id": "doc1", "rev": "2-abc"},
             {"ok": True, "id": "doc2", "rev": "2-def"}
         ])
@@ -393,9 +469,9 @@ class TestDatabase:
             {"_id": "doc1", "_rev": "1-abc", "name": "doc1", "_deleted": True},
             {"_id": "doc2", "_rev": "1-def", "name": "doc2", "_deleted": True}
         ]
-        mock_resource.post.assert_called_once_with("_bulk_docs",
-                                                 data=json.dumps({"docs": expected_docs}).encode(),
-                                                 params={"all_or_nothing": "true"})
+        mock_resource._request_response.assert_called_once_with(
+            "POST", "_bulk_docs", data=json.dumps({"docs": expected_docs}).encode(),
+            params={"all_or_nothing": "true"})
 
     def test_database_delete_bulk_without_transaction(self):
         """Test Database delete_bulk method without transaction."""
@@ -403,7 +479,7 @@ class TestDatabase:
         mock_response = Mock()
         mock_response.status_code = 201
         mock_response.json.return_value = [{"ok": True, "id": "doc1", "rev": "2-abc"}]
-        mock_resource.post.return_value = (mock_response, [{"ok": True, "id": "doc1", "rev": "2-abc"}])
+        mock_resource._request_response.return_value = (mock_response, [{"ok": True, "id": "doc1", "rev": "2-abc"}])
 
         db = client.Database(mock_resource, "testdb")
         docs = [{"_id": "doc1", "_rev": "1-abc", "name": "doc1"}]
@@ -411,9 +487,9 @@ class TestDatabase:
 
         # The method sends docs with _rev included
         expected_docs = [{"_id": "doc1", "_rev": "1-abc", "name": "doc1", "_deleted": True}]
-        mock_resource.post.assert_called_once_with("_bulk_docs",
-                                                 data=json.dumps({"docs": expected_docs}).encode(),
-                                                 params={"all_or_nothing": "false"})
+        mock_resource._request_response.assert_called_once_with(
+            "POST", "_bulk_docs", data=json.dumps({"docs": expected_docs}).encode(),
+            params={"all_or_nothing": "false"})
 
     def test_database_delete_bulk_conflict(self):
         """Test Database delete_bulk method with conflict."""
@@ -424,7 +500,7 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "2-abc"},
             {"error": "conflict", "reason": "Document conflict"}
         ]
-        mock_resource.post.return_value = (mock_response, [
+        mock_resource._request_response.return_value = (mock_response, [
             {"ok": True, "id": "doc1", "rev": "2-abc"},
             {"error": "conflict", "reason": "Document conflict"}
         ])
