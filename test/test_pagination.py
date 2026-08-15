@@ -3,7 +3,7 @@ Unit tests for pycouchdb.pagination module.
 """
 
 import pytest
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 from pycouchdb.pagination import view_pages, mango_pages
 
 
@@ -104,13 +104,39 @@ class TestViewPages:
         fetch_mock = Mock(return_value=(mock_response, mock_result))
 
         params = {'include_docs': True, 'descending': True}
-        pages = list(view_pages(fetch_mock, "test/view", 2, params))
+        list(view_pages(fetch_mock, "test/view", 2, params))
 
         fetch_mock.assert_called_once()
         call_args = fetch_mock.call_args[0][0]
         assert call_args['include_docs'] is True
         assert call_args['descending'] is True
         assert call_args['limit'] == 3
+
+    def test_view_pages_rejects_keys_option(self):
+        fetch_mock = Mock()
+
+        with pytest.raises(ValueError, match="does not support the 'keys' option"):
+            list(view_pages(fetch_mock, "test/view", 2, {'keys': ['a', 'b']}))
+
+        fetch_mock.assert_not_called()
+
+    def test_view_pages_rejects_reduced_rows(self):
+        fetch_mock = Mock(return_value=(Mock(), {
+            'rows': [
+                {'key': 'a', 'value': 1},
+            ],
+        }))
+
+        with pytest.raises(ValueError, match="requires map rows"):
+            list(view_pages(fetch_mock, "test/view", 2))
+
+    def test_view_pages_rejects_reduce_option(self):
+        fetch_mock = Mock()
+
+        with pytest.raises(ValueError, match="pass reduce=False"):
+            list(view_pages(fetch_mock, "test/view", 2, {'reduce': True}))
+
+        fetch_mock.assert_not_called()
 
     @pytest.mark.parametrize('page_size', [0, -1, 1.5, True, '2'])
     def test_view_pages_rejects_invalid_page_size(self, page_size):
@@ -223,7 +249,7 @@ class TestMangoPages:
 
         selector = {'name': {'$exists': True}}
         params = {'sort': [{'name': 'asc'}], 'fields': ['_id', 'name']}
-        pages = list(mango_pages(fetch_mock, selector, 2, params))
+        list(mango_pages(fetch_mock, selector, 2, params))
 
         fetch_mock.assert_called_once()
         call_args = fetch_mock.call_args[0][0]
