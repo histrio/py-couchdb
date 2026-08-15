@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Any, Dict, Callable, Optional, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from .client import Database
+from typing import Any, Dict, Callable, Optional
 
 # Type aliases for message callback functions
 MessageCallback = Callable[[Dict[str, Any]], None]

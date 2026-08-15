@@ -17,9 +17,11 @@ HttpResponse = Tuple[requests.Response, Optional[Any]]
 
 class Resource:
     def __init__(self, base_url: str, full_commit: bool = True, session: Optional[requests.Session] = None,
-                 credentials: Optional[Credentials] = None, authmethod: AuthMethod = "session", verify: bool = False) -> None:
+                 credentials: Optional[Credentials] = None, authmethod: AuthMethod = "session", verify: bool = False,
+                 timeout: Optional[float] = None) -> None:
 
         self.base_url = base_url
+        self.timeout = timeout
 #        self.verify = verify
 
         if not session:
@@ -44,7 +46,7 @@ class Resource:
             data = utils.force_bytes(json.dumps(data_dict))
 
             post_url = utils.urljoin(self.base_url, "_session")
-            r = self.session.post(post_url, data=data)
+            r = self.session.post(post_url, data=data, timeout=self.timeout)
             if r.status_code != 200:
                 raise exceptions.AuthenticationFailed()
 
@@ -56,7 +58,7 @@ class Resource:
 
     def __call__(self, *path: str) -> "Resource":
         base_url = utils.urljoin(self.base_url, *path)
-        return self.__class__(base_url, session=self.session)
+        return self.__class__(base_url, session=self.session, timeout=self.timeout)
 
     def _check_result(self, response: requests.Response, result: Optional[Any]) -> None:
         try:
@@ -78,7 +80,7 @@ class Resource:
                 raise exceptions.BadRequest(reason or "Bad request")
             raise exceptions.GenericError(result)
 
-    def request(self, method: str, path: HttpPath = None, params: HttpParams = None, 
+    def request(self, method: str, path: HttpPath = None, params: HttpParams = None,
                 data: Optional[Any] = None, headers: HttpHeaders = None, stream: bool = False, **kwargs: Any) -> HttpResponse:
 
         if headers is None:
@@ -92,6 +94,10 @@ class Resource:
             url = utils.urljoin(self.base_url, *path)
         else:
             url = self.base_url
+
+        # Add timeout to kwargs if not already specified
+        if self.timeout is not None and 'timeout' not in kwargs:
+            kwargs['timeout'] = self.timeout
 
         response = self.session.request(method, url, stream=stream,
                                         data=data, params=params,

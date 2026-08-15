@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict, List, Any, Optional, TypedDict, Iterator, Iterable, Callable, Protocol, Tuple
+from typing import Union, Dict, List, Any, Optional, TypedDict, Protocol, Tuple
 from typing_extensions import Final
 
 # JSON type alias for all valid JSON values
@@ -81,6 +81,11 @@ AuthMethod = str
 ViewName = str
 DocId = str
 Rev = str
+
+# Pagination type aliases
+ViewRows = List[Row]
+MangoDocs = List[Document]
+PageSize = int
 
 # Constants
 DEFAULT_BASE_URL: Final[str] = "http://localhost:5984/"

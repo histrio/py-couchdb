@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from typing import Final
-
-
 class Error(Exception):
     """Base exception class for all pycouchdb errors."""
     pass

@@ -14,7 +14,7 @@ class TestUtils:
         """Test extracting credentials from URL without authentication."""
         url = 'http://localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials is None
 
@@ -22,7 +22,7 @@ class TestUtils:
         """Test extracting credentials from URL with basic authentication."""
         url = 'http://joe:secret@localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials == ('joe', 'secret')
 
@@ -30,7 +30,7 @@ class TestUtils:
         """Test extracting credentials from URL with encoded authentication."""
         url = 'http://joe%40example.com:secret@localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials == ('joe@example.com', 'secret')
 
@@ -38,7 +38,7 @@ class TestUtils:
         """Test extracting credentials from URL with password containing colons."""
         url = 'http://user:pass:word@localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials == ('user', 'pass:word')
 
@@ -46,7 +46,7 @@ class TestUtils:
         """Test extracting credentials from URL with password containing multiple colons."""
         url = 'http://user:pass:word:with:colons@localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials == ('user', 'pass:word:with:colons')
 
@@ -54,7 +54,7 @@ class TestUtils:
         """Test extracting credentials from URL with encoded password containing colons."""
         url = 'http://user:pass%3Aword@localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials == ('user', 'pass:word')
 
@@ -62,7 +62,7 @@ class TestUtils:
         """Test extracting credentials from URL with invalid credential format."""
         url = 'http://user@localhost:5984/_config/'
         clean_url, credentials = utils.extract_credentials(url)
-        
+
         assert clean_url == 'http://localhost:5984/_config/'
         assert credentials is None
 
@@ -123,7 +123,7 @@ class TestUtils:
             def __init__(self):
                 self.headers = {'content-type': 'application/json'}
                 self.content = b'{"key": "value"}'
-        
+
         response = MockResponse()
         result = utils.as_json(response)
         assert result == {'key': 'value'}
@@ -134,10 +134,34 @@ class TestUtils:
             def __init__(self):
                 self.headers = {'content-type': 'application/json'}
                 self.content = b'invalid json'
-        
+
         response = MockResponse()
         # The function doesn't handle JSON decode errors, so it raises an exception
         with pytest.raises(json.JSONDecodeError):  # json.loads raises JSONDecodeError for invalid JSON
+            utils.as_json(response)
+
+    def test_as_json_invalid_utf8(self):
+        """Test as_json with invalid UTF-8 content."""
+        class MockResponse:
+            def __init__(self):
+                self.headers = {'content-type': 'application/json'}
+                # Valid JSON but with invalid UTF-8 sequence in the middle
+                self.content = b'{"key": "value", "invalid": "\xff\xfe"}'
+
+        response = MockResponse()
+        with pytest.raises(UnicodeDecodeError):
+            utils.as_json(response)
+
+    def test_as_json_invalid_utf8_with_replacement(self):
+        """Test as_json with invalid UTF-8 content that gets replaced."""
+        class MockResponse:
+            def __init__(self):
+                self.headers = {'content-type': 'application/json'}
+                # Valid JSON with invalid UTF-8 that will be replaced with replacement character
+                self.content = b'{"key": "value", "invalid": "\xff\xfe\x80"}'
+
+        response = MockResponse()
+        with pytest.raises(UnicodeDecodeError):
             utils.as_json(response)
 
     def test_encode_view_options(self):
@@ -151,9 +175,9 @@ class TestUtils:
             'descending': True,
             'include_docs': True
         }
-        
+
         result = utils.encode_view_options(options)
-        
+
         assert result['key'] == '"value"'
         assert result['startkey'] == '"start"'
         assert result['endkey'] == '"end"'
@@ -167,7 +191,7 @@ class TestUtils:
         options = {
             'keys': ['key1', 'key2', 'key3']
         }
-        
+
         result = utils.encode_view_options(options)
         assert result['keys'] == ['key1', 'key2', 'key3']  # 'keys' is not in the special list, so it's not converted
 
@@ -176,7 +200,7 @@ class TestUtils:
         options = {
             'key': {'nested': 'value'}
         }
-        
+
         result = utils.encode_view_options(options)
         assert result['key'] == '{"nested": "value"}'
 
@@ -187,7 +211,7 @@ class TestUtils:
             'include_docs': True,
             'reduce': False
         }
-        
+
         result = utils.encode_view_options(options)
         assert result['descending'] == False  # Boolean values are not converted to strings
         assert result['include_docs'] == True
@@ -200,7 +224,7 @@ class TestUtils:
             'skip': 0,
             'group_level': 2
         }
-        
+
         result = utils.encode_view_options(options)
         assert result['limit'] == 100
         assert result['skip'] == 0

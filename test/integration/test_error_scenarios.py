@@ -19,11 +19,11 @@ import socketserver
 
 class BadCouchDBHandler(BaseHTTPRequestHandler):
     """HTTP handler that simulates various CouchDB error conditions."""
-    
+
     def __init__(self, *args, error_scenario=None, **kwargs):
         self.error_scenario = error_scenario
         super().__init__(*args, **kwargs)
-    
+
     def do_GET(self):
         """Handle GET requests with various error scenarios."""
         if self.error_scenario == 'timeout':
@@ -50,7 +50,7 @@ class BadCouchDBHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"couchdb": "Welcome", "version": "3.2.0"}).encode())
-    
+
     def do_POST(self):
         """Handle POST requests."""
         if self.error_scenario == 'timeout':
@@ -65,7 +65,7 @@ class BadCouchDBHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"ok": True}).encode())
-    
+
     def do_PUT(self):
         """Handle PUT requests."""
         if self.error_scenario == 'timeout':
@@ -80,7 +80,7 @@ class BadCouchDBHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"ok": True}).encode())
-    
+
     def do_DELETE(self):
         """Handle DELETE requests."""
         if self.error_scenario == 'timeout':
@@ -95,7 +95,7 @@ class BadCouchDBHandler(BaseHTTPRequestHandler):
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps({"ok": True}).encode())
-    
+
     def do_HEAD(self):
         """Handle HEAD requests."""
         if self.error_scenario == 'timeout':
@@ -108,7 +108,7 @@ class BadCouchDBHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-Type', 'application/json')
             self.end_headers()
-    
+
     def log_message(self, format, *args):
         """Suppress log messages during testing."""
         pass
@@ -116,25 +116,25 @@ class BadCouchDBHandler(BaseHTTPRequestHandler):
 
 class BadCouchDBServer:
     """Test server that can simulate various CouchDB error conditions."""
-    
+
     def __init__(self, port=0, error_scenario=None):
         self.port = port
         self.error_scenario = error_scenario
         self.server = None
         self.thread = None
-    
+
     def start(self):
         """Start the test server."""
         def handler(*args, **kwargs):
             return BadCouchDBHandler(*args, error_scenario=self.error_scenario, **kwargs)
-        
+
         self.server = HTTPServer(('localhost', self.port), handler)
         self.port = self.server.server_address[1]
         self.thread = threading.Thread(target=self.server.serve_forever)
         self.thread.daemon = True
         self.thread.start()
         time.sleep(0.1)  # Give server time to start
-    
+
     def stop(self):
         """Stop the test server."""
         if self.server:
@@ -142,7 +142,7 @@ class BadCouchDBServer:
             self.server.server_close()
         if self.thread:
             self.thread.join(timeout=1)
-    
+
     @property
     def url(self):
         """Get the server URL."""
@@ -197,7 +197,7 @@ def malformed_json_server():
 def test_timeout_handling(timeout_server):
     """Test pycouchdb library behavior with timeout scenarios."""
     server = pycouchdb.Server(timeout_server.url)
-    
+
     with pytest.raises(Exception):
         server.info()
 
@@ -205,7 +205,7 @@ def test_timeout_handling(timeout_server):
 def test_server_error_handling(server_error_server):
     """Test pycouchdb library behavior with server errors."""
     server = pycouchdb.Server(server_error_server.url)
-    
+
     with pytest.raises(Exception):
         server.info()
 
@@ -213,15 +213,16 @@ def test_server_error_handling(server_error_server):
 def test_malformed_json_handling(malformed_json_server):
     """Test pycouchdb library behavior with malformed JSON responses."""
     server = pycouchdb.Server(malformed_json_server.url)
-    
+
     with pytest.raises(Exception):
         server.info()
 
 
 def test_connection_refused_handling():
     """Test pycouchdb library behavior when connection is refused."""
-    server = pycouchdb.Server('http://localhost:99999/')
-    
+    # Use a short timeout to make the test faster
+    server = pycouchdb.Server('http://localhost:99999/', timeout=2.0)
+
     with pytest.raises(Exception):
         server.info()
 
@@ -229,7 +230,7 @@ def test_connection_refused_handling():
 def test_authentication_failure_handling():
     """Test pycouchdb library behavior with authentication failures."""
     server = pycouchdb.Server('http://invalid:credentials@localhost:5984/')
-    
+
     with pytest.raises(Exception):
         server.info()
 
@@ -246,8 +247,9 @@ def test_ssl_verification_failure_handling():
 
 def test_network_unreachable_handling():
     """Test pycouchdb library behavior when network is unreachable."""
-    server = pycouchdb.Server('http://192.0.2.1:5984/')
-    
+    # Use a short timeout to make the test faster
+    server = pycouchdb.Server('http://192.0.2.1:5984/', timeout=2.0)
+
     with pytest.raises(Exception):
         server.info()
 
@@ -258,11 +260,12 @@ def test_invalid_url_handling():
         'http://localhost:not-a-port/',
         'http://nonexistent-host-12345:5984/',
     ]
-    
+
     for url in invalid_urls:
-        server = pycouchdb.Server(url)
+        # Use a short timeout to make the test faster
+        server = pycouchdb.Server(url, timeout=2.0)
         assert server is not None
-        
+
         with pytest.raises(Exception):
             server.info()
 
@@ -270,16 +273,16 @@ def test_invalid_url_handling():
 def test_large_response_handling():
     """Test pycouchdb library behavior with very large responses."""
     server = pycouchdb.Server('http://admin:password@localhost:5984/')
-    
+
     try:
         db = server.create('large_response_test')
-        
+
         docs = [{'index': i, 'data': 'x' * 1000} for i in range(1000)]
         db.save_bulk(docs)
-        
+
         all_docs = list(db.all())
         assert len(all_docs) >= 1000
-        
+
     except Exception as e:
         pytest.skip(f"Large response test skipped: {e}")
     finally:
@@ -293,48 +296,48 @@ def test_concurrent_error_handling():
     """Test pycouchdb library behavior under concurrent error conditions."""
     server = pycouchdb.Server('http://admin:password@localhost:5984/')
     errors = []
-    
+
     def make_request():
         try:
             server.info()
         except Exception as e:
             errors.append(e)
-    
+
     threads = []
     for i in range(5):
         thread = threading.Thread(target=make_request)
         threads.append(thread)
         thread.start()
-    
+
     for thread in threads:
         thread.join()
-    
+
     assert len(errors) == 0
 
 
 def test_database_operations_under_error_conditions():
     """Test database operations under various error conditions."""
     server = pycouchdb.Server('http://admin:password@localhost:5984/')
-    
+
     try:
         # Test database operations that might fail
         db = server.create('error_test_db')
-        
+
         # Test saving document
         doc = db.save({'_id': 'test_doc', 'data': 'test'})
         assert doc['_id'] == 'test_doc'
-        
+
         # Test getting document
         retrieved_doc = db.get('test_doc')
         assert retrieved_doc['data'] == 'test'
-        
+
         # Test deleting document
         db.delete('test_doc')
-        
+
         # Test that document is gone
         with pytest.raises(pycouchdb.exceptions.NotFound):
             db.get('test_doc')
-            
+
     except Exception as e:
         pytest.skip(f"Database operations test skipped: {e}")
     finally:
@@ -347,19 +350,19 @@ def test_database_operations_under_error_conditions():
 def test_bulk_operations_error_handling():
     """Test bulk operations error handling."""
     server = pycouchdb.Server('http://admin:password@localhost:5984/')
-    
+
     try:
         db = server.create('bulk_error_test')
-        
+
         # Test bulk save
         docs = [{'index': i, 'data': f'bulk_{i}'} for i in range(10)]
         saved_docs = db.save_bulk(docs)
         assert len(saved_docs) == 10
-        
+
         # Test bulk delete
         deleted_docs = db.delete_bulk(saved_docs)
         assert len(deleted_docs) == 10
-        
+
     except Exception as e:
         pytest.skip(f"Bulk operations test skipped: {e}")
     finally:
@@ -372,30 +375,30 @@ def test_bulk_operations_error_handling():
 def test_attachment_operations_error_handling():
     """Test attachment operations error handling."""
     server = pycouchdb.Server('http://admin:password@localhost:5984/')
-    
+
     try:
         db = server.create('attachment_error_test')
-        
+
         # Create document
         doc = db.save({'_id': 'attachment_test', 'type': 'test'})
-        
+
         # Test attachment operations
         import io
         content = b'test attachment content'
         content_stream = io.BytesIO(content)
-        
+
         # Put attachment
         doc_with_attachment = db.put_attachment(doc, content_stream, 'test.txt')
         assert '_attachments' in doc_with_attachment
-        
+
         # Get attachment
         retrieved_content = db.get_attachment(doc_with_attachment, 'test.txt')
         assert retrieved_content == content
-        
+
         # Delete attachment
         doc_without_attachment = db.delete_attachment(doc_with_attachment, 'test.txt')
         assert '_attachments' not in doc_without_attachment
-        
+
     except Exception as e:
         pytest.skip(f"Attachment operations test skipped: {e}")
     finally:

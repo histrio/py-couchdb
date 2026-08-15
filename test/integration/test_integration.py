@@ -578,7 +578,7 @@ def test_basic_auth_success():
 def test_basic_auth_failure():
     """Test basic authentication with invalid credentials."""
     server = pycouchdb.Server('http://invalid:credentials@localhost:5984/')
-    
+
     with pytest.raises(Exception):
         server.info()
 
@@ -619,12 +619,12 @@ def test_concurrent_document_updates(db):
     """Test concurrent updates to the same document."""
     import threading
     import time
-    
+
     doc = db.save({'_id': 'concurrent_test', 'counter': 0})
-    
+
     results = []
     errors = []
-    
+
     def update_document():
         try:
             for i in range(5):
@@ -636,16 +636,16 @@ def test_concurrent_document_updates(db):
                 time.sleep(0.01)
         except Exception as e:
             errors.append(e)
-    
+
     threads = []
     for i in range(3):
         thread = threading.Thread(target=update_document)
         threads.append(thread)
         thread.start()
-    
+
     for thread in threads:
         thread.join()
-    
+
     assert len(results) > 0
     assert len(errors) >= 0
 
@@ -654,10 +654,10 @@ def test_concurrent_database_operations(server):
     """Test concurrent database creation and deletion."""
     import threading
     import time
-    
+
     results = []
     errors = []
-    
+
     def create_and_delete_db(db_num):
         try:
             db_name = f'concurrent_db_{db_num}'
@@ -667,18 +667,18 @@ def test_concurrent_database_operations(server):
             results.append(f'success_{db_num}')
         except Exception as e:
             errors.append(f'error_{db_num}: {e}')
-    
+
     # Start multiple threads
     threads = []
     for i in range(5):
         thread = threading.Thread(target=create_and_delete_db, args=(i,))
         threads.append(thread)
         thread.start()
-    
+
     # Wait for all threads to complete
     for thread in threads:
         thread.join()
-    
+
     # Check results
     assert len(results) > 0
     # Some operations might fail due to timing, that's expected
@@ -694,11 +694,11 @@ def test_large_document(db):
         'data': large_data,
         'size': len(large_data)
     }
-    
+
     saved_doc = db.save(doc)
     assert saved_doc['_id'] == 'large_doc'
     assert saved_doc['size'] == len(large_data)
-    
+
     # Retrieve and verify
     retrieved_doc = db.get('large_doc')
     assert retrieved_doc['size'] == len(large_data)
@@ -715,11 +715,11 @@ def test_bulk_operations_large_dataset(db):
             'index': i,
             'data': f'content_{i}' * 100  # Make each doc reasonably sized
         })
-    
+
     # Save in bulk
     saved_docs = db.save_bulk(docs)
     assert len(saved_docs) == 1000
-    
+
     # Verify some documents
     for i in range(0, 1000, 100):
         doc = db.get(f'bulk_doc_{i}')
@@ -731,23 +731,23 @@ def test_memory_efficient_streaming(db):
     """Test memory-efficient streaming operations."""
     # Create a document with attachment
     doc = db.save({'_id': 'streaming_test', 'type': 'test'})
-    
+
     # Create a large attachment
     large_content = b'x' * (100 * 1024)  # 100KB
     import io
     content_stream = io.BytesIO(large_content)
-    
+
     # Put attachment
     doc_with_attachment = db.put_attachment(doc, content_stream, 'large_file.txt')
-    
+
     # Get attachment with streaming
     stream_response = db.get_attachment(doc_with_attachment, 'large_file.txt', stream=True)
-    
+
     # Read in chunks to test streaming
     chunks = []
     for chunk in stream_response.iter_content(chunk_size=1024):
         chunks.append(chunk)
-    
+
     # Verify content
     retrieved_content = b''.join(chunks)
     assert retrieved_content == large_content
@@ -758,17 +758,17 @@ def test_changes_feed_error_handling(db):
     """Test changes feed with error scenarios."""
     messages = []
     errors = []
-    
+
     def error_prone_reader(message, db):
         messages.append(message)
         if len(messages) > 2:
             raise Exception("Simulated error in feed reader")
-    
+
     try:
         db.changes_feed(error_prone_reader, limit=5)
     except Exception as e:
         errors.append(e)
-    
+
     assert len(messages) > 0
 
 
@@ -776,19 +776,19 @@ def test_changes_feed_heartbeat_handling(db):
     """Test changes feed heartbeat handling."""
     heartbeats = []
     messages = []
-    
+
     class HeartbeatTestReader(pycouchdb.feedreader.BaseFeedReader):
         def on_message(self, message):
             messages.append(message)
             if len(messages) >= 2:
                 raise pycouchdb.exceptions.FeedReaderExited()
-        
+
         def on_heartbeat(self):
             heartbeats.append('heartbeat')
-    
+
     reader = HeartbeatTestReader()
     db.changes_feed(reader, limit=5)
-    
+
     assert len(heartbeats) >= 0
 
 
@@ -802,11 +802,11 @@ def test_unicode_document_ids(db):
         'ドキュメント_テスト',
         'тест_документ_123'
     ]
-    
+
     for doc_id in unicode_ids:
         doc = db.save({'_id': doc_id, 'content': f'Content for {doc_id}'})
         assert doc['_id'] == doc_id
-        
+
         # Retrieve and verify
         retrieved_doc = db.get(doc_id)
         assert retrieved_doc['_id'] == doc_id
@@ -822,9 +822,9 @@ def test_unicode_content(db):
         'japanese': 'これは日本語のテキストです',
         'emoji': '🚀📚💻🎉'
     }
-    
+
     doc = db.save({'_id': 'unicode_test', **unicode_content})
-    
+
     retrieved_doc = db.get('unicode_test')
     for key, value in unicode_content.items():
         assert retrieved_doc[key] == value
@@ -837,12 +837,12 @@ def test_special_characters_in_database_names(server):
         'test_db_123',  # underscores and numbers (most basic)
         'test-db-123',  # dashes and numbers
     ]
-    
+
     invalid_names = [
         'TestDB',
         '123test',
     ]
-    
+
     for db_name in allowed_names:
         try:
             db = server.create(db_name)
@@ -851,7 +851,7 @@ def test_special_characters_in_database_names(server):
             assert db_name not in server
         except Exception as e:
             pytest.skip(f"Database name '{db_name}' not allowed: {e}")
-    
+
     for db_name in invalid_names:
         with pytest.raises(Exception):
             server.create(db_name)
@@ -863,14 +863,14 @@ def test_special_characters_in_database_names(server):
 def test_bulk_operation_performance(db):
     """Test performance of bulk operations."""
     import time
-    
+
     # Test bulk save performance
     docs = [{'index': i, 'data': f'content_{i}'} for i in range(100)]
-    
+
     start_time = time.time()
     saved_docs = db.save_bulk(docs)
     end_time = time.time()
-    
+
     assert len(saved_docs) == 100
     assert end_time - start_time < 10
 
@@ -881,11 +881,11 @@ def test_empty_database_operations(db):
     # Test querying empty database
     results = list(db.all())
     assert len(results) == 0
-    
+
     # Test changes on empty database
     last_seq, changes = db.changes_list()
     assert len(changes) == 0
-    
+
     try:
         result = db.query('nonexistent/view')
         assert list(result) == []
@@ -899,13 +899,13 @@ def test_document_with_system_fields(db):
         '_id': 'system_fields_test',
         'custom_field': 'value',
     }
-    
+
     saved_doc = db.save(doc)
     assert saved_doc['_id'] == 'system_fields_test'
     assert saved_doc['custom_field'] == 'value'
     assert '_rev' in saved_doc
     assert saved_doc['_rev'].startswith('1-')
-    
+
     saved_doc['custom_field'] = 'updated_value'
     updated_doc = db.save(saved_doc)
     assert updated_doc['custom_field'] == 'updated_value'
@@ -915,26 +915,26 @@ def test_document_with_system_fields(db):
 def test_attachment_with_special_characters(db):
     """Test attachments with special characters in filenames."""
     import io
-    
+
     special_filenames = [
         'file_with_underscores.txt',
         'file-with-dashes.txt',
         'file.with.dots.txt',
         'файл_с_кириллицей.txt'
     ]
-    
+
     for i, filename in enumerate(special_filenames):
         try:
             doc = db.save({'_id': f'attachment_test_{i}', 'type': 'test'})
-            
+
             content = f'Content for {filename}'.encode('utf-8')
             content_stream = io.BytesIO(content)
-            
+
             doc_with_attachment = db.put_attachment(doc, content_stream, filename)
-            
+
             retrieved_content = db.get_attachment(doc_with_attachment, filename)
             assert retrieved_content.decode('utf-8') == f'Content for {filename}'
-            
+
         except Exception as e:
             pytest.skip(f"Filename '{filename}' not allowed: {e}")
 
@@ -967,11 +967,11 @@ def test_design_document_management(db):
             "items": "function(head, req) { var row; while (row = getRow()) { send(row.value); } }"
         }
     }
-    
+
     # Save design document
     saved_design = db.save(design_doc)
     assert saved_design['_id'] == '_design/test_views'
-    
+
     # Create some test documents
     test_docs = [
         {'_id': 'doc1', 'name': 'Alice', 'type': 'user', 'status': 'active', 'created_at': '2023-01-01'},
@@ -979,21 +979,21 @@ def test_design_document_management(db):
         {'_id': 'doc3', 'name': 'Charlie', 'type': 'admin', 'status': 'active', 'created_at': '2023-01-03'},
     ]
     db.save_bulk(test_docs)
-    
+
     # Test different views
     by_name_results = list(db.query('test_views/by_name'))
     assert len(by_name_results) == 3
-    
+
     by_type_results = list(db.query('test_views/by_type', group=True))
     assert len(by_type_results) == 2  # user and admin types
-    
+
     # Test reduce function
     total_by_type = db.one('test_views/by_type', flat='value')
     assert total_by_type == 3  # Total count of all documents
-    
+
     # Test date range query
-    date_results = list(db.query('test_views/by_date', 
-                                startkey='2023-01-01', 
+    date_results = list(db.query('test_views/by_date',
+                                startkey='2023-01-01',
                                 endkey='2023-01-02'))
     assert len(date_results) == 2
 
@@ -1010,15 +1010,15 @@ def test_view_compaction_and_cleanup(db):
         }
     }
     db.save(design_doc)
-    
+
     # Add some documents to create view data
     for i in range(100):
         db.save({'_id': f'compaction_doc_{i}', 'id': i, 'value': f'value_{i}'})
-    
+
     # Test view compaction
     result = db.compact_view('compaction_test')
     assert result is not None
-    
+
     # Test database cleanup
     cleanup_result = db.cleanup()
     assert cleanup_result is not None
@@ -1029,7 +1029,7 @@ def test_replication_edge_cases(server):
     # Create source and target databases
     source_db = server.create('replication_source')
     target_db = server.create('replication_target')
-    
+
     try:
         # Add documents to source
         source_docs = [
@@ -1038,18 +1038,18 @@ def test_replication_edge_cases(server):
             {'_id': 'doc3', 'content': 'source content 3'},
         ]
         source_db.save_bulk(source_docs)
-        
+
         # Test basic replication
         replicate_result = server.replicate(
             SERVER_URL + 'replication_source',
             SERVER_URL + 'replication_target'
         )
         assert replicate_result is not None
-        
+
         # Verify documents were replicated
         target_docs = list(target_db.all())
         assert len(target_docs) >= 3
-        
+
         # Test replication with create_target=True
         replicate_with_create = server.replicate(
             SERVER_URL + 'replication_source',
@@ -1057,13 +1057,13 @@ def test_replication_edge_cases(server):
             create_target=True
         )
         assert replicate_with_create is not None
-        
+
         # Verify target database was created
         assert 'replication_target_create' in server
-        
+
         # Clean up created database
         server.delete('replication_target_create')
-        
+
     finally:
         # Clean up
         server.delete('replication_source')
@@ -1075,7 +1075,7 @@ def test_library_compaction_api_behavior(db):
     # Test that compact() method returns expected result
     compact_result = db.compact()
     assert compact_result is not None
-    
+
     # Test that compact_view() works with valid design doc
     design_doc = {
         "_id": "_design/compact_test",
@@ -1086,15 +1086,15 @@ def test_library_compaction_api_behavior(db):
         }
     }
     db.save(design_doc)
-    
+
     # Add some documents to create view data
     for i in range(10):
         db.save({'_id': f'compact_doc_{i}', 'id': i, 'value': f'value_{i}'})
-    
+
     # Test view compaction API
     view_compact_result = db.compact_view('compact_test')
     assert view_compact_result is not None
-    
+
     # Test cleanup API
     cleanup_result = db.cleanup()
     assert cleanup_result is not None
@@ -1110,7 +1110,7 @@ def test_changes_feed_with_filters(db):
         }
     }
     db.save(design_doc)
-    
+
     # Add documents of different types
     docs = [
         {'_id': 'user1', 'type': 'user', 'name': 'Alice'},
@@ -1118,20 +1118,20 @@ def test_changes_feed_with_filters(db):
         {'_id': 'user2', 'type': 'user', 'name': 'Charlie'},
     ]
     db.save_bulk(docs)
-    
+
     # Test changes feed with filter
     messages = []
-    
+
     def filter_reader(message, db):
         messages.append(message)
         if len(messages) >= 2:
             raise pycouchdb.exceptions.FeedReaderExited()
-    
+
     try:
         db.changes_feed(filter_reader, filter='filters/by_type', type='user', limit=10)
     except Exception:
         pass  # May not be supported in all CouchDB versions
-    
+
     # Should have received some messages
     assert len(messages) >= 0
 
@@ -1139,7 +1139,7 @@ def test_changes_feed_with_filters(db):
 def test_attachment_metadata_and_content_types(db):
     """Test attachment handling with different content types and metadata."""
     doc = db.save({'_id': 'attachment_metadata_test', 'type': 'test'})
-    
+
     # Test different content types
     content_types = [
         ('text.txt', 'text/plain', b'Plain text content'),
@@ -1147,27 +1147,27 @@ def test_attachment_metadata_and_content_types(db):
         ('image.png', 'image/png', b'fake_png_data'),
         ('document.pdf', 'application/pdf', b'fake_pdf_data'),
     ]
-    
+
     for filename, content_type, content in content_types:
         import io
         content_stream = io.BytesIO(content)
-        
+
         # Get fresh document for each attachment to avoid conflicts
         current_doc = db.get('attachment_metadata_test')
-        
+
         # Put attachment with specific content type
         doc_with_attachment = db.put_attachment(
             current_doc, content_stream, filename, content_type=content_type
         )
-        
+
         # Verify attachment metadata
         assert '_attachments' in doc_with_attachment
         assert filename in doc_with_attachment['_attachments']
-        
+
         attachment_info = doc_with_attachment['_attachments'][filename]
         assert attachment_info['content_type'] == content_type
         assert attachment_info['length'] == len(content)
-        
+
         # Retrieve and verify content
         retrieved_content = db.get_attachment(doc_with_attachment, filename)
         assert retrieved_content == content
@@ -1177,30 +1177,30 @@ def test_document_conflicts_resolution(db):
     """Test document conflict resolution scenarios."""
     # Create initial document
     doc1 = db.save({'_id': 'conflict_test', 'version': 1, 'data': 'initial'})
-    
+
     # Simulate concurrent updates by getting the same document twice
     doc2 = db.get('conflict_test')
     doc3 = db.get('conflict_test')
-    
+
     # Update both copies
     doc2['version'] = 2
     doc2['data'] = 'updated_by_client_1'
     doc3['version'] = 2
     doc3['data'] = 'updated_by_client_2'
-    
+
     # Save first update
     updated_doc2 = db.save(doc2)
-    
+
     # Second update should conflict
     with pytest.raises(pycouchdb.exceptions.Conflict):
         db.save(doc3)
-    
+
     # Resolve conflict by getting latest and updating
     latest_doc = db.get('conflict_test')
     latest_doc['version'] = 3
     latest_doc['data'] = 'resolved_conflict'
     resolved_doc = db.save(latest_doc)
-    
+
     assert resolved_doc['version'] == 3
     assert resolved_doc['data'] == 'resolved_conflict'
 
@@ -1214,19 +1214,19 @@ def test_bulk_operations_with_conflicts(db):
         {'_id': 'bulk_conflict_3', 'version': 1},
     ]
     db.save_bulk(initial_docs)
-    
+
     # Get documents for update
     docs_to_update = [db.get(f'bulk_conflict_{i}') for i in range(1, 4)]
-    
+
     # Update all documents
     for i, doc in enumerate(docs_to_update):
         doc['version'] = 2
         doc['updated_by'] = f'client_{i}'
-    
+
     # Save in bulk - should succeed
     updated_docs = db.save_bulk(docs_to_update)
     assert len(updated_docs) == 3
-    
+
     # Try to update again with old revision - should conflict
     # We need to use the old revision numbers to create a conflict
     old_docs = [
@@ -1242,20 +1242,20 @@ def test_library_database_config_api(server):
     """Test pycouchdb library's database config API."""
     # Create a test database
     test_db = server.create('config_test')
-    
+
     try:
         # Test that config() method returns expected data structure
         db_info = test_db.config()
         assert isinstance(db_info, dict)
         assert 'update_seq' in db_info
         assert 'doc_count' in db_info
-        
+
         # Test that we can access the database name
         assert test_db.name == 'config_test'
-        
+
         # Test that database length works
         assert isinstance(len(test_db), int)
-        
+
     finally:
         server.delete('config_test')
 
@@ -1265,15 +1265,15 @@ def test_library_server_initialization():
     # Test default initialization
     server1 = pycouchdb.Server()
     assert server1.base_url == 'http://localhost:5984/'
-    
+
     # Test custom URL initialization
     server2 = pycouchdb.Server('http://custom:5984/')
     assert server2.base_url == 'http://custom:5984/'
-    
+
     # Test with credentials
     server3 = pycouchdb.Server('http://user:pass@localhost:5984/')
     assert server3.base_url == 'http://localhost:5984/'
-    
+
     # Test with verify parameter
     server4 = pycouchdb.Server(verify=True)
     assert server4.base_url == 'http://localhost:5984/'
@@ -1283,7 +1283,7 @@ def test_custom_headers_and_parameters(db):
     """Test custom headers and parameters in requests."""
     # Test with custom parameters in get request
     doc = db.save({'_id': 'custom_params_test', 'data': 'test'})
-    
+
     # Test getting document with custom parameters
     # Note: revs_info parameter should be passed to the underlying request
     retrieved_doc = db.get('custom_params_test', revs=True, revs_info=True)
@@ -1302,16 +1302,474 @@ def test_library_database_length_and_config_api(db):
     assert isinstance(initial_config, dict)
     assert 'doc_count' in initial_config
     assert 'update_seq' in initial_config
-    
+
     # Add some documents
     docs = [{'index': i, 'data': f'length_test_{i}'} for i in range(5)]
     db.save_bulk(docs)
-    
+
     # Test that length reflects document count
     new_length = len(db)
     new_config = db.config()
-    
+
     assert new_length >= initial_length + 5
     assert new_config['doc_count'] >= initial_config['doc_count'] + 5
     assert new_config['update_seq'] > initial_config['update_seq']
 
+
+# Pagination Integration Tests
+import json
+from pycouchdb import utils
+
+def test_view_pages_integration_single_page(db):
+    """Test view_pages integration with single page of results."""
+    from pycouchdb.pagination import view_pages
+
+    # Create a design document with a view
+    design_doc = {
+        "_id": "_design/pagination_test",
+        "views": {
+            "by_name": {
+                "map": "function(doc) { if (doc.name) emit(doc.name, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Create test documents
+    test_docs = [
+        {'_id': 'doc1', 'name': 'Alice'},
+        {'_id': 'doc2', 'name': 'Bob'},
+    ]
+    db.save_bulk(test_docs)
+
+    # Create a fetch function that uses the database's resource directly
+    def fetch_view(params):
+        path = ['_design', 'pagination_test', '_view', 'by_name']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    # Test pagination with page size larger than total documents
+    pages = list(view_pages(fetch_view, 'pagination_test/by_name', 10))
+
+    assert len(pages) == 1
+    assert len(pages[0]) == 2
+    assert pages[0][0]['id'] == 'doc1'
+    assert pages[0][1]['id'] == 'doc2'
+
+    # Cleanup
+    db.delete('_design/pagination_test')
+
+
+def test_view_pages_integration_multiple_pages(db):
+    """Test view_pages integration with multiple pages."""
+    from pycouchdb.pagination import view_pages
+
+    # Create a design document with a view
+    design_doc = {
+        "_id": "_design/pagination_test",
+        "views": {
+            "by_name": {
+                "map": "function(doc) { if (doc.name) emit(doc.name, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Create test documents (more than page size)
+    test_docs = [
+        {'_id': f'doc{i}', 'name': f'User{i}'} for i in range(1, 8)  # 7 documents
+    ]
+    db.save_bulk(test_docs)
+
+    # Create a fetch function that uses the database's resource directly
+    def fetch_view(params):
+        path = ['_design', 'pagination_test', '_view', 'by_name']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    # Test pagination with small page size
+    pages = list(view_pages(fetch_view, 'pagination_test/by_name', 3))
+
+    assert len(pages) == 3  # 3, 3, 1 documents
+    assert len(pages[0]) == 3
+    assert len(pages[1]) == 3
+    assert len(pages[2]) == 1
+
+    # Verify all documents are retrieved
+    all_docs = []
+    for page in pages:
+        all_docs.extend(page)
+
+    doc_ids = [doc['id'] for doc in all_docs]
+    expected_ids = [f'doc{i}' for i in range(1, 8)]
+    assert set(doc_ids) == set(expected_ids)
+
+    # Cleanup
+    db.delete('_design/pagination_test')
+
+
+def test_view_pages_integration_with_params(db):
+    """Test view_pages integration with additional parameters."""
+    from pycouchdb.pagination import view_pages
+
+    # Create a design document with a view
+    design_doc = {
+        "_id": "_design/pagination_test",
+        "views": {
+            "by_name": {
+                "map": "function(doc) { if (doc.name) emit(doc.name, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Create test documents
+    test_docs = [
+        {'_id': 'doc1', 'name': 'Alice', 'age': 25},
+        {'_id': 'doc2', 'name': 'Bob', 'age': 30},
+        {'_id': 'doc3', 'name': 'Charlie', 'age': 35},
+    ]
+    db.save_bulk(test_docs)
+
+    # Create a fetch function that uses the database's resource directly
+    def fetch_view(params):
+        path = ['_design', 'pagination_test', '_view', 'by_name']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    # Test pagination with include_docs parameter
+    params = {'include_docs': True}
+    pages = list(view_pages(fetch_view, 'pagination_test/by_name', 2, params))
+
+    assert len(pages) == 2
+    assert len(pages[0]) == 2
+    assert len(pages[1]) == 1
+
+    # Verify documents are included
+    for page in pages:
+        for doc in page:
+            assert 'doc' in doc
+            assert doc['doc']['name'] in ['Alice', 'Bob', 'Charlie']
+
+    # Cleanup
+    db.delete('_design/pagination_test')
+
+
+def test_mango_pages_integration_single_page(db):
+    """Test mango_pages integration with single page of results."""
+    from pycouchdb.pagination import mango_pages
+
+    # Create test documents
+    test_docs = [
+        {'_id': 'doc1', 'name': 'Alice', 'type': 'user'},
+        {'_id': 'doc2', 'name': 'Bob', 'type': 'user'},
+    ]
+    db.save_bulk(test_docs)
+
+    # Create a fetch function that uses the database's resource directly
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    # Test pagination with page size larger than total documents
+    selector = {'type': 'user'}
+    pages = list(mango_pages(fetch_find, selector, 10))
+
+    assert len(pages) == 1
+    assert len(pages[0]) == 2
+    assert pages[0][0]['_id'] == 'doc1'
+    assert pages[0][1]['_id'] == 'doc2'
+
+
+def test_mango_pages_integration_multiple_pages(db):
+    """Test mango_pages integration with multiple pages."""
+    from pycouchdb.pagination import mango_pages
+
+    # Create test documents (more than page size)
+    test_docs = [
+        {'_id': f'doc{i}', 'name': f'User{i}', 'type': 'user', 'index': i}
+        for i in range(1, 8)  # 7 documents
+    ]
+    db.save_bulk(test_docs)
+
+    # Create a fetch function that uses the database's resource directly
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    # Test pagination with small page size
+    selector = {'type': 'user'}
+    pages = list(mango_pages(fetch_find, selector, 3))
+
+    assert len(pages) == 3  # 3, 3, 1 documents
+    assert len(pages[0]) == 3
+    assert len(pages[1]) == 3
+    assert len(pages[2]) == 1
+
+    # Verify all documents are retrieved
+    all_docs = []
+    for page in pages:
+        all_docs.extend(page)
+
+    doc_ids = [doc['_id'] for doc in all_docs]
+    expected_ids = [f'doc{i}' for i in range(1, 8)]
+    assert set(doc_ids) == set(expected_ids)
+
+
+def test_mango_pages_integration_with_params(db):
+    """Test mango_pages integration with additional parameters."""
+    from pycouchdb.pagination import mango_pages
+
+    # Create test documents
+    test_docs = [
+        {'_id': 'doc1', 'name': 'Alice', 'type': 'user', 'age': 25},
+        {'_id': 'doc2', 'name': 'Bob', 'type': 'user', 'age': 30},
+        {'_id': 'doc3', 'name': 'Charlie', 'type': 'user', 'age': 35},
+    ]
+    db.save_bulk(test_docs)
+
+    # Create index for the sort field
+    index_def = {
+        "index": {
+            "fields": ["type", "age"]
+        },
+        "name": "test_index"
+    }
+    db.resource.post('_index', data=utils.force_bytes(json.dumps(index_def)))
+
+    # Create a fetch function that uses the database's resource directly
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    # Test pagination with sort and fields parameters
+    selector = {'type': 'user'}
+    params = {
+        'sort': [{'age': 'asc'}],
+        'fields': ['_id', 'name', 'age']
+    }
+    pages = list(mango_pages(fetch_find, selector, 2, params))
+
+    assert len(pages) == 2
+    assert len(pages[0]) == 2
+    assert len(pages[1]) == 1
+
+    # Verify documents are sorted by age
+    all_docs = []
+    for page in pages:
+        all_docs.extend(page)
+
+    ages = [doc['age'] for doc in all_docs]
+    assert ages == [25, 30, 35]  # Should be sorted by age
+
+
+def test_pagination_large_dataset(db):
+    """Test pagination with a large dataset to verify performance."""
+    from pycouchdb.pagination import view_pages, mango_pages
+
+    # Create a large number of documents
+    large_docs = [
+        {'_id': f'large_doc_{i}', 'name': f'User{i}', 'type': 'user', 'index': i}
+        for i in range(1, 101)  # 100 documents
+    ]
+    db.save_bulk(large_docs)
+
+    # Create a design document for view pagination
+    design_doc = {
+        "_id": "_design/large_test",
+        "views": {
+            "by_index": {
+                "map": "function(doc) { if (doc.index) emit(doc.index, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Test view pagination with large dataset
+    def fetch_view(params):
+        path = ['_design', 'large_test', '_view', 'by_index']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    pages = list(view_pages(fetch_view, 'large_test/by_index', 20))
+
+    # Should have 5 pages of 20 documents each
+    assert len(pages) == 5
+    for page in pages:
+        assert len(page) == 20
+
+    # Test mango pagination with large dataset
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    selector = {'type': 'user'}
+    pages = list(mango_pages(fetch_find, selector, 25))
+
+    # Should have 4 pages of 25 documents each
+    assert len(pages) == 4
+    for page in pages:
+        assert len(page) == 25
+
+    # Cleanup
+    db.delete('_design/large_test')
+
+
+def test_pagination_empty_results(db):
+    """Test pagination with empty results."""
+    from pycouchdb.pagination import view_pages, mango_pages
+
+    # Create a design document
+    design_doc = {
+        "_id": "_design/empty_test",
+        "views": {
+            "by_name": {
+                "map": "function(doc) { if (doc.name) emit(doc.name, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Test view pagination with no matching documents
+    def fetch_view(params):
+        path = ['_design', 'empty_test', '_view', 'by_name']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    pages = list(view_pages(fetch_view, 'empty_test/by_name', 10))
+    assert len(pages) == 0
+
+    # Test mango pagination with no matching documents
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    selector = {'type': 'nonexistent'}
+    pages = list(mango_pages(fetch_find, selector, 10))
+    assert len(pages) == 0
+
+    # Cleanup
+    db.delete('_design/empty_test')
+
+
+def test_pagination_edge_cases(db):
+    """Test pagination edge cases."""
+    from pycouchdb.pagination import view_pages, mango_pages
+
+    # Create a design document
+    design_doc = {
+        "_id": "_design/edge_test",
+        "views": {
+            "by_name": {
+                "map": "function(doc) { if (doc.name) emit(doc.name, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Create exactly one document
+    db.save({'_id': 'single_doc', 'name': 'Single'})
+
+    # Test view pagination with single document
+    def fetch_view(params):
+        path = ['_design', 'edge_test', '_view', 'by_name']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    pages = list(view_pages(fetch_view, 'edge_test/by_name', 1))
+    assert len(pages) == 1
+    assert len(pages[0]) == 1
+    assert pages[0][0]['id'] == 'single_doc'
+
+    # Test mango pagination with single document
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    selector = {'name': 'Single'}
+    pages = list(mango_pages(fetch_find, selector, 1))
+    assert len(pages) == 1
+    assert len(pages[0]) == 1
+    assert pages[0][0]['_id'] == 'single_doc'
+
+    # Cleanup
+    db.delete('_design/edge_test')
+
+
+def test_pagination_different_page_sizes(db):
+    """Test pagination with different page sizes."""
+    from pycouchdb.pagination import view_pages, mango_pages
+
+    # Create test documents
+    test_docs = [
+        {'_id': f'doc{i}', 'name': f'User{i}', 'type': 'user'}
+        for i in range(1, 11)  # 10 documents
+    ]
+    db.save_bulk(test_docs)
+
+    # Create a design document
+    design_doc = {
+        "_id": "_design/size_test",
+        "views": {
+            "by_name": {
+                "map": "function(doc) { if (doc.name) emit(doc.name, doc); }"
+            }
+        }
+    }
+    db.save(design_doc)
+
+    # Test different page sizes for view pagination
+    def fetch_view(params):
+        path = ['_design', 'size_test', '_view', 'by_name']
+        resource = db.resource(*path)
+        response, result = resource.get(params=params)
+        return response, result
+
+    # Test with page size 1
+    pages = list(view_pages(fetch_view, 'size_test/by_name', 1))
+    assert len(pages) == 10
+    for page in pages:
+        assert len(page) == 1
+
+    # Test with page size 3
+    pages = list(view_pages(fetch_view, 'size_test/by_name', 3))
+    assert len(pages) == 4  # 3, 3, 3, 1
+    assert len(pages[0]) == 3
+    assert len(pages[1]) == 3
+    assert len(pages[2]) == 3
+    assert len(pages[3]) == 1
+
+    # Test different page sizes for mango pagination
+    def fetch_find(params):
+        data = utils.force_bytes(json.dumps(params))
+        response, result = db.resource.post('_find', data=data)
+        return response, result
+
+    selector = {'type': 'user'}
+
+    # Test with page size 2
+    pages = list(mango_pages(fetch_find, selector, 2))
+    assert len(pages) == 5  # 2, 2, 2, 2, 2
+    for page in pages:
+        assert len(page) == 2
+
+    # Test with page size 7
+    pages = list(mango_pages(fetch_find, selector, 7))
+    assert len(pages) == 2  # 7, 3
+    assert len(pages[0]) == 7
+    assert len(pages[1]) == 3
+
+    # Cleanup
+    db.delete('_design/size_test')

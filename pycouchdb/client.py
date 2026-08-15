@@ -6,16 +6,14 @@ import uuid
 import copy
 import mimetypes
 import warnings
-from typing import Any, Dict, List, Optional, Union, Iterator, Callable, TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Union, Iterator, Callable, Tuple
 
 from . import utils
 from . import feedreader
 from . import exceptions as exp
 from .resource import Resource
-from .types import (
-    Json, Document, Row, BulkItem, ServerInfo, DatabaseInfo, 
-    ChangeResult, ViewResult, Credentials, AuthMethod, DocId, Rev
-)
+from .types import Document, BulkItem, ServerInfo, DatabaseInfo, AuthMethod
+from .pagination import view_pages, mango_pages, ViewRows, MangoDocs, PageSize
 
 # Type alias for feed reader parameter
 FeedReader = Union[Callable[[Dict[str, Any]], None], feedreader.BaseFeedReader]
@@ -110,13 +108,13 @@ class Server:
     """
 
     def __init__(self, base_url: str = DEFAULT_BASE_URL, full_commit: bool = True,
-                 authmethod: AuthMethod = "basic", verify: bool = False) -> None:
+                 authmethod: AuthMethod = "basic", verify: bool = False, timeout: Optional[float] = None) -> None:
 
         self.base_url, credentials = utils.extract_credentials(base_url)
         self.resource = Resource(self.base_url, full_commit,
                                  credentials=credentials,
                                  authmethod=authmethod,
-                                 verify=verify)
+                                 verify=verify, timeout=timeout)
 
     def __repr__(self) -> str:
         return '<CouchDB Server "{}">'.format(self.base_url)
@@ -855,3 +853,77 @@ class Database:
 
         (resp, result) = self.resource("_changes").get(params=kwargs)
         return result['last_seq'], result['results']
+
+    def find(self, selector: Dict[str, Any], **kwargs: Any) -> Iterator[Document]:
+        """
+        Execute a Mango query using the _find endpoint.
+
+        :param selector: Mango query selector
+        :param kwargs: Additional query parameters (limit, bookmark, etc.)
+        :returns: Iterator of documents matching the selector
+        """
+        params = copy.copy(kwargs)
+        params['selector'] = selector
+
+        data = utils.force_bytes(json.dumps(params))
+        (resp, result) = self.resource.post("_find", data=data)
+
+        if result is None or 'docs' not in result:
+            return
+
+        for doc in result['docs']:
+            yield doc
+
+    def view_pages(self, design_and_view: str, page_size: PageSize, params: Optional[Dict[str, Any]] = None) -> Iterator[ViewRows]:
+        """
+        Paginate through CouchDB view results with automatic cursor management.
+
+        This method provides convenient pagination for view queries without manual
+        skip parameter management. It automatically handles startkey and startkey_docid
+        for stable pagination.
+
+        :param design_and_view: View name (e.g., "design/view")
+        :param page_size: Number of rows per page
+        :param params: Additional query parameters
+        :returns: Iterator yielding lists of rows for each page
+
+        .. versionadded:: 1.17
+        """
+        path = utils._path_from_name(design_and_view, '_view')
+
+        def fetch_view(params_dict: Dict[str, Any]) -> Tuple[Any, Optional[Dict[str, Any]]]:
+            data = None
+            if "keys" in params_dict:
+                data_dict = {"keys": params_dict.pop('keys')}
+                data = utils.force_bytes(json.dumps(data_dict))
+
+            if data:
+                (resp, result) = self.resource(*path).post(params=params_dict, data=data)
+            else:
+                (resp, result) = self.resource(*path).get(params=params_dict)
+
+            return resp, result
+
+        return view_pages(fetch_view, design_and_view, page_size, params)
+
+    def mango_pages(self, selector: Dict[str, Any], page_size: PageSize, params: Optional[Dict[str, Any]] = None) -> Iterator[MangoDocs]:
+        """
+        Paginate through Mango query results with automatic bookmark management.
+
+        This method provides convenient pagination for Mango queries without manual
+        bookmark parameter management. It automatically handles the bookmark cursor
+        for stable pagination.
+
+        :param selector: Mango query selector
+        :param page_size: Number of documents per page
+        :param params: Additional query parameters
+        :returns: Iterator yielding lists of documents for each page
+
+        .. versionadded:: 1.17
+        """
+        def fetch_mango(params_dict: Dict[str, Any]) -> Tuple[Any, Optional[Dict[str, Any]]]:
+            data = utils.force_bytes(json.dumps(params_dict))
+            (resp, result) = self.resource.post("_find", data=data)
+            return resp, result
+
+        return mango_pages(fetch_mango, selector, page_size, params)

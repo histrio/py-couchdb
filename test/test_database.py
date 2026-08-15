@@ -4,8 +4,7 @@ Unit tests for pycouchdb.client.Database class.
 
 import pytest
 import json
-import uuid
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch, call
 from pycouchdb import client, exceptions
 
 
@@ -16,7 +15,7 @@ class TestDatabase:
         """Test Database initialization."""
         mock_resource = Mock()
         db = client.Database(mock_resource, "testdb")
-        
+
         assert db.resource == mock_resource
         assert db.name == "testdb"
 
@@ -24,7 +23,7 @@ class TestDatabase:
         """Test Database __repr__ method."""
         mock_resource = Mock()
         db = client.Database(mock_resource, "testdb")
-        
+
         repr_str = repr(db)
         assert "CouchDB Database" in repr_str
         assert "testdb" in repr_str
@@ -33,10 +32,10 @@ class TestDatabase:
         """Test Database __contains__ method when document exists."""
         mock_resource = Mock()
         mock_resource.head.return_value = (Mock(status_code=200), None)
-        
+
         db = client.Database(mock_resource, "testdb")
         result = "doc123" in db
-        
+
         assert result is True
         mock_resource.head.assert_called_once_with(["doc123"])
 
@@ -44,10 +43,10 @@ class TestDatabase:
         """Test Database __contains__ method when document doesn't exist."""
         mock_resource = Mock()
         mock_resource.head.side_effect = exceptions.NotFound()
-        
+
         db = client.Database(mock_resource, "testdb")
         result = "doc123" in db
-        
+
         assert result is False
 
     def test_database_config(self):
@@ -57,10 +56,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"doc_count": 100, "update_seq": 200}
         mock_resource.get.return_value = (mock_response, {"doc_count": 100, "update_seq": 200})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.config()
-        
+
         assert result == {"doc_count": 100, "update_seq": 200}
         mock_resource.get.assert_called_once_with()
 
@@ -70,16 +69,16 @@ class TestDatabase:
         mock_response = Mock()
         mock_response.status_code = 200
         mock_resource.head.return_value = (mock_response, None)
-        
+
         # Mock the config method that gets called by __len__ (which is called by bool() in Python 3)
         mock_config_response = Mock()
         mock_config_response.status_code = 200
         mock_config_response.json.return_value = {"doc_count": 100}
         mock_resource.get.return_value = (mock_config_response, {"doc_count": 100})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = bool(db)
-        
+
         assert result is True
         # bool() calls __len__ which calls config(), not __nonzero__ which calls head()
         mock_resource.get.assert_called_once_with()
@@ -90,17 +89,17 @@ class TestDatabase:
         mock_response = Mock()
         mock_response.status_code = 404
         mock_resource.head.return_value = (mock_response, None)
-        
+
         # Mock the config method that gets called by __len__ (which is called by bool() in Python 3)
         # For a database to be "false", it needs to have 0 documents
         mock_config_response = Mock()
         mock_config_response.status_code = 200
         mock_config_response.json.return_value = {"doc_count": 0}
         mock_resource.get.return_value = (mock_config_response, {"doc_count": 0})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = bool(db)
-        
+
         assert result is False
 
     def test_database_len(self):
@@ -110,10 +109,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"doc_count": 150}
         mock_resource.get.return_value = (mock_response, {"doc_count": 150})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = len(db)
-        
+
         assert result == 150
 
     def test_database_get_success(self):
@@ -123,10 +122,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         mock_resource.return_value.get.return_value = (mock_response, {"_id": "doc123", "_rev": "1-abc", "name": "test"})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.get("doc123")
-        
+
         assert result == {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         mock_resource.assert_called_once_with("doc123")
 
@@ -137,10 +136,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         mock_resource.return_value.get.return_value = (mock_response, {"_id": "doc123", "_rev": "1-abc", "name": "test"})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.get("doc123", revs=True, conflicts=True)
-        
+
         assert result == {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         mock_resource.assert_called_once_with("doc123")
         mock_resource.return_value.get.assert_called_once_with(params={"revs": True, "conflicts": True})
@@ -152,21 +151,21 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         mock_resource.return_value.get.return_value = (mock_response, {"_id": "doc123", "_rev": "1-abc", "name": "test"})
-        
+
         db = client.Database(mock_resource, "testdb")
-        
+
         with pytest.warns(DeprecationWarning):
             result = db.get("doc123", params={"revs": True})
-        
+
         assert result == {"_id": "doc123", "_rev": "1-abc", "name": "test"}
 
     def test_database_get_not_found(self):
         """Test Database get method with not found."""
         mock_resource = Mock()
         mock_resource.return_value.get.side_effect = exceptions.NotFound("Document not found")
-        
+
         db = client.Database(mock_resource, "testdb")
-        
+
         with pytest.raises(exceptions.NotFound, match="Document not found"):
             db.get("doc123")
 
@@ -177,11 +176,11 @@ class TestDatabase:
         mock_response.status_code = 201
         mock_response.json.return_value = {"ok": True, "id": "doc123", "rev": "1-abc"}
         mock_resource.return_value.put.return_value = (mock_response, {"ok": True, "id": "doc123", "rev": "1-abc"})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"name": "test"}
         result = db.save(doc)
-        
+
         assert result["_id"] is not None
         assert result["_rev"] == "1-abc"
         assert result["name"] == "test"
@@ -195,11 +194,11 @@ class TestDatabase:
         mock_response.status_code = 201
         mock_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
         mock_resource.return_value.put.return_value = (mock_response, {"ok": True, "id": "doc123", "rev": "2-def"})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         result = db.save(doc)
-        
+
         assert result["_id"] == "doc123"
         assert result["_rev"] == "2-def"
         assert result["name"] == "test"
@@ -211,11 +210,11 @@ class TestDatabase:
         mock_response.status_code = 202
         mock_response.json.return_value = {"ok": True, "id": "doc123", "rev": "1-abc"}
         mock_resource.return_value.put.return_value = (mock_response, {"ok": True, "id": "doc123", "rev": "1-abc"})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"name": "test"}
         result = db.save(doc, batch=True)
-        
+
         assert result["_id"] is not None
         assert result["_rev"] == "1-abc"
         mock_resource.return_value.put.assert_called_once()
@@ -229,10 +228,10 @@ class TestDatabase:
         mock_response.status_code = 409
         mock_response.json.return_value = {"error": "conflict", "reason": "Document conflict"}
         mock_resource.return_value.put.return_value = (mock_response, {"error": "conflict", "reason": "Document conflict"})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
-        
+
         with pytest.raises(exceptions.Conflict, match="Document conflict"):
             db.save(doc)
 
@@ -249,11 +248,11 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "1-abc"},
             {"ok": True, "id": "doc2", "rev": "1-def"}
         ])
-        
+
         db = client.Database(mock_resource, "testdb")
         docs = [{"name": "doc1"}, {"name": "doc2"}]
         result = db.save_bulk(docs)
-        
+
         assert len(result) == 2
         assert result[0]["_id"] is not None
         assert result[0]["_rev"] == "1-abc"
@@ -261,7 +260,7 @@ class TestDatabase:
         assert result[1]["_rev"] == "1-def"
         # The method sends docs without _rev, then adds _rev from response
         expected_docs = [{"name": "doc1", "_id": result[0]["_id"]}, {"name": "doc2", "_id": result[1]["_id"]}]
-        mock_resource.post.assert_called_once_with("_bulk_docs", 
+        mock_resource.post.assert_called_once_with("_bulk_docs",
                                                  data=json.dumps({"docs": expected_docs}).encode(),
                                                  params={"all_or_nothing": "true"})
 
@@ -278,11 +277,11 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "1-abc"},
             {"ok": True, "id": "doc2", "rev": "1-def"}
         ])
-        
+
         db = client.Database(mock_resource, "testdb")
         docs = [{"_id": "doc1", "name": "doc1"}, {"_id": "doc2", "name": "doc2"}]
         result = db.save_bulk(docs, try_setting_ids=False)
-        
+
         assert len(result) == 2
         assert result[0]["_id"] == "doc1"
         assert result[1]["_id"] == "doc2"
@@ -294,14 +293,14 @@ class TestDatabase:
         mock_response.status_code = 201
         mock_response.json.return_value = [{"ok": True, "id": "doc1", "rev": "1-abc"}]
         mock_resource.post.return_value = (mock_response, [{"ok": True, "id": "doc1", "rev": "1-abc"}])
-        
+
         db = client.Database(mock_resource, "testdb")
         docs = [{"name": "doc1"}]
         result = db.save_bulk(docs, transaction=False)
-        
+
         # The method sends docs without _rev, then adds _rev from response
         expected_docs = [{"name": "doc1", "_id": result[0]["_id"]}]
-        mock_resource.post.assert_called_once_with("_bulk_docs", 
+        mock_resource.post.assert_called_once_with("_bulk_docs",
                                                  data=json.dumps({"docs": expected_docs}).encode(),
                                                  params={"all_or_nothing": "false"})
 
@@ -312,15 +311,15 @@ class TestDatabase:
         mock_head_response.status_code = 200
         mock_head_response.headers = {"etag": '"1-abc"'}
         mock_resource.return_value.head.return_value = (mock_head_response, None)
-        
+
         mock_delete_response = Mock()
         mock_delete_response.status_code = 200
         mock_delete_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
         mock_resource.return_value.delete.return_value = (mock_delete_response, {"ok": True, "id": "doc123", "rev": "2-def"})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.delete("doc123")
-        
+
         assert result is None  # delete method doesn't return anything
         mock_resource.assert_called_once_with("doc123")
         mock_resource.return_value.head.assert_called_once()
@@ -333,16 +332,16 @@ class TestDatabase:
         mock_head_response.status_code = 200
         mock_head_response.headers = {"etag": '"1-abc"'}
         mock_resource.return_value.head.return_value = (mock_head_response, None)
-        
+
         mock_delete_response = Mock()
         mock_delete_response.status_code = 200
         mock_delete_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
         mock_resource.return_value.delete.return_value = (mock_delete_response, {"ok": True, "id": "doc123", "rev": "2-def"})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         result = db.delete(doc)
-        
+
         assert result is None  # delete method doesn't return anything
         mock_resource.assert_called_once_with("doc123")
 
@@ -350,7 +349,7 @@ class TestDatabase:
         """Test Database delete method with invalid document."""
         db = client.Database(Mock(), "testdb")
         doc = {"name": "test"}  # Missing _id
-        
+
         with pytest.raises(ValueError, match="Invalid document, missing _id attr"):
             db.delete(doc)
 
@@ -358,9 +357,9 @@ class TestDatabase:
         """Test Database delete method with not found."""
         mock_resource = Mock()
         mock_resource.return_value.head.side_effect = exceptions.NotFound("Document not found")
-        
+
         db = client.Database(mock_resource, "testdb")
-        
+
         with pytest.raises(exceptions.NotFound, match="Document not found"):
             db.delete("doc123")
 
@@ -377,24 +376,24 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "2-abc"},
             {"ok": True, "id": "doc2", "rev": "2-def"}
         ])
-        
+
         db = client.Database(mock_resource, "testdb")
         docs = [
             {"_id": "doc1", "_rev": "1-abc", "name": "doc1"},
             {"_id": "doc2", "_rev": "1-def", "name": "doc2"}
         ]
         result = db.delete_bulk(docs)
-        
+
         assert len(result) == 2
         assert result[0]["ok"] is True
         assert result[1]["ok"] is True
-        
+
         # Check that _deleted flag was added
         expected_docs = [
             {"_id": "doc1", "_rev": "1-abc", "name": "doc1", "_deleted": True},
             {"_id": "doc2", "_rev": "1-def", "name": "doc2", "_deleted": True}
         ]
-        mock_resource.post.assert_called_once_with("_bulk_docs", 
+        mock_resource.post.assert_called_once_with("_bulk_docs",
                                                  data=json.dumps({"docs": expected_docs}).encode(),
                                                  params={"all_or_nothing": "true"})
 
@@ -405,14 +404,14 @@ class TestDatabase:
         mock_response.status_code = 201
         mock_response.json.return_value = [{"ok": True, "id": "doc1", "rev": "2-abc"}]
         mock_resource.post.return_value = (mock_response, [{"ok": True, "id": "doc1", "rev": "2-abc"}])
-        
+
         db = client.Database(mock_resource, "testdb")
         docs = [{"_id": "doc1", "_rev": "1-abc", "name": "doc1"}]
-        result = db.delete_bulk(docs, transaction=False)
-        
+        db.delete_bulk(docs, transaction=False)
+
         # The method sends docs with _rev included
         expected_docs = [{"_id": "doc1", "_rev": "1-abc", "name": "doc1", "_deleted": True}]
-        mock_resource.post.assert_called_once_with("_bulk_docs", 
+        mock_resource.post.assert_called_once_with("_bulk_docs",
                                                  data=json.dumps({"docs": expected_docs}).encode(),
                                                  params={"all_or_nothing": "false"})
 
@@ -429,13 +428,13 @@ class TestDatabase:
             {"ok": True, "id": "doc1", "rev": "2-abc"},
             {"error": "conflict", "reason": "Document conflict"}
         ])
-        
+
         db = client.Database(mock_resource, "testdb")
         docs = [
             {"_id": "doc1", "_rev": "1-abc", "name": "doc1"},
             {"_id": "doc2", "_rev": "1-def", "name": "doc2"}
         ]
-        
+
         with pytest.raises(exceptions.Conflict, match="one or more docs are not saved"):
             db.delete_bulk(docs)
 
@@ -456,10 +455,10 @@ class TestDatabase:
                 {"id": "doc2", "key": "doc2", "value": {"rev": "1-def"}, "doc": {"_id": "doc2", "name": "doc2"}}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.all())
-        
+
         assert len(result) == 2
         assert result[0]["id"] == "doc1"
         assert result[1]["id"] == "doc2"
@@ -472,12 +471,12 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"rows": []}
         mock_resource.post.return_value = (mock_response, {"rows": []})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.all(keys=["doc1", "doc2"]))
-        
+
         assert result == []
-        mock_resource.post.assert_called_once_with("_all_docs", 
+        mock_resource.post.assert_called_once_with("_all_docs",
                                                  params={"include_docs": "true"},
                                                  data=json.dumps({"keys": ["doc1", "doc2"]}).encode())
 
@@ -498,10 +497,10 @@ class TestDatabase:
                 {"id": "doc2", "key": "doc2", "value": {"rev": "1-def"}}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.all(flat="id"))
-        
+
         assert result == ["doc1", "doc2"]
 
     def test_database_all_as_list(self):
@@ -519,10 +518,10 @@ class TestDatabase:
                 {"id": "doc1", "key": "doc1", "value": {"rev": "1-abc"}}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.all(as_list=True)
-        
+
         assert isinstance(result, list)
         assert len(result) == 1
         assert result[0]["id"] == "doc1"
@@ -534,10 +533,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"ok": True}
         mock_resource.return_value.post.return_value = (mock_response, {"ok": True})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.cleanup()
-        
+
         assert result == {"ok": True}
         mock_resource.assert_called_once_with("_view_cleanup")
 
@@ -548,10 +547,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"ok": True}
         mock_resource.post.return_value = (mock_response, {"ok": True})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.commit()
-        
+
         assert result == {"ok": True}
         mock_resource.post.assert_called_once_with("_ensure_full_commit")
 
@@ -562,10 +561,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"ok": True}
         mock_resource.return_value.post.return_value = (mock_response, {"ok": True})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.compact()
-        
+
         assert result == {"ok": True}
         mock_resource.assert_called_once_with("_compact")
 
@@ -576,10 +575,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"ok": True}
         mock_resource.return_value.post.return_value = (mock_response, {"ok": True})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.compact_view("test_design")
-        
+
         assert result == {"ok": True}
         mock_resource.assert_called_once_with("_compact", "test_design")
 
@@ -587,9 +586,9 @@ class TestDatabase:
         """Test Database compact_view method with not found."""
         mock_resource = Mock()
         mock_resource.return_value.post.side_effect = exceptions.NotFound("Design document not found")
-        
+
         db = client.Database(mock_resource, "testdb")
-        
+
         with pytest.raises(exceptions.NotFound, match="Design document not found"):
             db.compact_view("nonexistent_design")
 
@@ -617,7 +616,7 @@ class TestDatabase:
                 {"rev": "1-abc", "status": "available"}
             ]
         })
-        
+
         # Mock the subsequent calls to get each revision
         def mock_get_side_effect(*args, **kwargs):
             if 'rev' in kwargs.get('params', {}):
@@ -638,12 +637,12 @@ class TestDatabase:
                     {"rev": "1-abc", "status": "available"}
                 ]
             })
-        
+
         mock_resource.return_value.get.side_effect = mock_get_side_effect
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.revisions("doc123"))
-        
+
         assert len(result) == 3
         assert result[0]["_id"] == "doc123"
         assert result[0]["_rev"] == "3-ghi"
@@ -656,9 +655,9 @@ class TestDatabase:
         """Test Database revisions method with not found."""
         mock_resource = Mock()
         mock_resource.return_value.get.side_effect = exceptions.NotFound("Document not found")
-        
+
         db = client.Database(mock_resource, "testdb")
-        
+
         with pytest.raises(exceptions.NotFound, match="Document not found"):
             list(db.revisions("doc123"))
 
@@ -682,7 +681,7 @@ class TestDatabase:
                 {"rev": "1-abc", "status": "available"}
             ]
         })
-        
+
         # Mock the subsequent call to get the revision
         def mock_get_side_effect(*args, **kwargs):
             if 'rev' in kwargs.get('params', {}):
@@ -697,12 +696,12 @@ class TestDatabase:
                     {"rev": "1-abc", "status": "available"}
                 ]
             })
-        
+
         mock_resource.return_value.get.side_effect = mock_get_side_effect
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.revisions("doc123", status="available", limit=10))
-        
+
         assert len(result) == 1
         # The method calls get twice: once for _revs_info, once for the actual revision
         assert mock_resource.return_value.get.call_count == 2
@@ -714,20 +713,20 @@ class TestDatabase:
         mock_response.status_code = 201
         mock_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
         mock_resource.return_value.put.return_value = (mock_response, {"ok": True, "id": "doc123", "rev": "2-def"})
-        
+
         # Mock the get call that happens at the end of put_attachment
         mock_get_response = Mock()
         mock_get_response.status_code = 200
         mock_get_response.json.return_value = {"_id": "doc123", "_rev": "2-def", "name": "test", "_attachments": {"test.txt": {"content_type": "text/plain"}}}
         mock_resource.return_value.get.return_value = (mock_get_response, {"_id": "doc123", "_rev": "2-def", "name": "test", "_attachments": {"test.txt": {"content_type": "text/plain"}}})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         content = b"Hello, World!"
-        
+
         with patch('pycouchdb.client.mimetypes.guess_type', return_value=('text/plain', None)):
             result = db.put_attachment(doc, content, "test.txt")
-        
+
         assert result["_id"] == "doc123"
         assert result["_rev"] == "2-def"
         assert "_attachments" in result
@@ -744,19 +743,19 @@ class TestDatabase:
         mock_response.status_code = 201
         mock_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
         mock_resource.return_value.put.return_value = (mock_response, {"ok": True, "id": "doc123", "rev": "2-def"})
-        
+
         # Mock the get call that happens at the end of put_attachment
         mock_get_response = Mock()
         mock_get_response.status_code = 200
         mock_get_response.json.return_value = {"_id": "doc123", "_rev": "2-def", "name": "test", "_attachments": {"test.txt": {"content_type": "text/plain"}}}
         mock_resource.return_value.get.return_value = (mock_get_response, {"_id": "doc123", "_rev": "2-def", "name": "test", "_attachments": {"test.txt": {"content_type": "text/plain"}}})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "name": "test"}
         content = b"Hello, World!"
-        
+
         result = db.put_attachment(doc, content, "test.txt", content_type="text/plain")
-        
+
         assert result["_attachments"]["test.txt"]["content_type"] == "text/plain"
 
     def test_database_get_attachment_success(self):
@@ -766,12 +765,12 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.content = b"Hello, World!"
         mock_resource.return_value.get.return_value = (mock_response, None)
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "_attachments": {"test.txt": {"content_type": "text/plain"}}}
-        
+
         result = db.get_attachment(doc, "test.txt")
-        
+
         assert result == b"Hello, World!"
         mock_resource.assert_called_once_with("doc123")
         mock_resource.return_value.get.assert_called_once_with("test.txt", stream=False, params={"rev": "1-abc"})
@@ -783,12 +782,12 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.content = b"Hello, World!"
         mock_resource.return_value.get.return_value = (mock_response, None)
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "_attachments": {"test.txt": {"content_type": "text/plain"}}}
-        
+
         result = db.get_attachment(doc, "test.txt", stream=True)
-        
+
         assert hasattr(result, 'iter_content')
         assert hasattr(result, 'iter_lines')
         assert hasattr(result, 'raw')
@@ -798,10 +797,10 @@ class TestDatabase:
         """Test Database get_attachment method with not found."""
         mock_resource = Mock()
         mock_resource.return_value.get.side_effect = exceptions.NotFound("Attachment not found")
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc", "_attachments": {"test.txt": {"content_type": "text/plain"}}}
-        
+
         with pytest.raises(exceptions.NotFound, match="Attachment not found"):
             db.get_attachment(doc, "test.txt")
 
@@ -812,16 +811,16 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
         mock_resource.return_value.delete.return_value = (mock_response, {"ok": True, "id": "doc123", "rev": "2-def"})
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {
-            "_id": "doc123", 
-            "_rev": "1-abc", 
+            "_id": "doc123",
+            "_rev": "1-abc",
             "_attachments": {"test.txt": {"content_type": "text/plain"}}
         }
-        
+
         result = db.delete_attachment(doc, "test.txt")
-        
+
         assert result["_id"] == "doc123"
         assert result["_rev"] == "2-def"
         assert "_attachments" not in result
@@ -832,10 +831,10 @@ class TestDatabase:
         """Test Database delete_attachment method with not found."""
         mock_resource = Mock()
         mock_resource.return_value.delete.side_effect = exceptions.NotFound("Attachment not found")
-        
+
         db = client.Database(mock_resource, "testdb")
         doc = {"_id": "doc123", "_rev": "1-abc"}
-        
+
         with pytest.raises(exceptions.NotFound, match="Attachment not found"):
             db.delete_attachment(doc, "test.txt")
 
@@ -854,10 +853,10 @@ class TestDatabase:
                 {"id": "doc1", "key": "doc1", "value": 1}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.one("test/view")
-        
+
         assert result == {"id": "doc1", "key": "doc1", "value": 1}
         mock_resource.assert_called_once_with("_design", "test", "_view", "view")
 
@@ -868,10 +867,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"rows": []}
         mock_resource.return_value.get.return_value = (mock_response, {"rows": []})
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.one("test/view")
-        
+
         assert result is None
 
     def test_database_one_with_flat(self):
@@ -889,10 +888,10 @@ class TestDatabase:
                 {"id": "doc1", "key": "doc1", "value": 1}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = db.one("test/view", flat="value")
-        
+
         assert result == 1
 
     def test_database_query_success(self):
@@ -912,10 +911,10 @@ class TestDatabase:
                 {"id": "doc2", "key": "doc2", "value": 2}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.query("test/view"))
-        
+
         assert len(result) == 2
         assert result[0]["id"] == "doc1"
         assert result[1]["id"] == "doc2"
@@ -936,20 +935,20 @@ class TestDatabase:
                 {"id": "doc1", "key": "doc1", "value": 1}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.query("test/view", pagesize=1))
-        
+
         assert len(result) == 1
         assert result[0]["id"] == "doc1"
 
     def test_database_query_invalid_pagesize(self):
         """Test Database query method with invalid pagesize."""
         db = client.Database(Mock(), "testdb")
-        
+
         with pytest.raises(AssertionError, match="pagesize should be a positive integer"):
             list(db.query("test/view", pagesize="invalid"))
-        
+
         with pytest.raises(AssertionError, match="pagesize should be a positive integer"):
             list(db.query("test/view", pagesize=0))
 
@@ -968,10 +967,10 @@ class TestDatabase:
                 {"id": "doc1", "key": "doc1", "value": 1}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         result = list(db.query("test/view", pagesize=10, limit=1))
-        
+
         assert len(result) == 1
         assert result[0]["id"] == "doc1"
 
@@ -994,10 +993,10 @@ class TestDatabase:
                 {"seq": 2, "id": "doc2", "changes": [{"rev": "1-def"}]}
             ]
         })
-        
+
         db = client.Database(mock_resource, "testdb")
         last_seq, changes = db.changes_list()
-        
+
         assert last_seq == 100
         assert len(changes) == 2
         assert changes[0]["id"] == "doc1"
@@ -1011,10 +1010,10 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.json.return_value = {"last_seq": 100, "results": []}
         mock_resource.return_value.get.return_value = (mock_response, {"last_seq": 100, "results": []})
-        
+
         db = client.Database(mock_resource, "testdb")
         last_seq, changes = db.changes_list(since=50, limit=10)
-        
+
         assert last_seq == 100
         assert changes == []
         mock_resource.assert_called_once_with("_changes")
@@ -1031,15 +1030,15 @@ class TestDatabase:
             b''  # Empty line (heartbeat)
         ]
         mock_resource.post.return_value = (mock_response, None)
-        
+
         db = client.Database(mock_resource, "testdb")
         messages_received = []
-        
+
         def mock_feed_reader(message, db):
             messages_received.append(message)
             if len(messages_received) >= 2:
                 raise exceptions.FeedReaderExited()
-        
+
         with patch('pycouchdb.client._listen_feed') as mock_listen:
             db.changes_feed(mock_feed_reader)
             mock_listen.assert_called_once()
@@ -1051,20 +1050,197 @@ class TestDatabase:
         mock_response.status_code = 200
         mock_response.iter_lines.return_value = []
         mock_resource.post.return_value = (mock_response, None)
-        
+
         db = client.Database(mock_resource, "testdb")
-        
+
         def mock_feed_reader(message, db):
             pass
-        
+
         with patch('pycouchdb.client._listen_feed') as mock_listen:
-            db.changes_feed(mock_feed_reader, 
+            db.changes_feed(mock_feed_reader,
                           feed="longpoll",
                           since=100,
                           limit=50)
-            
+
             mock_listen.assert_called_once()
             call_args = mock_listen.call_args
             assert call_args[1]['feed'] == "longpoll"
             assert call_args[1]['since'] == 100
             assert call_args[1]['limit'] == 50
+
+    def test_database_find_method(self):
+        """Test the find method for Mango queries."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_result = {
+            'docs': [
+                {'_id': 'doc1', 'name': 'Alice'},
+                {'_id': 'doc2', 'name': 'Bob'}
+            ]
+        }
+        mock_resource.post.return_value = (mock_response, mock_result)
+
+        db = client.Database(mock_resource, "testdb")
+        selector = {'name': {'$exists': True}}
+
+        docs = list(db.find(selector, limit=10))
+
+        assert len(docs) == 2
+        assert docs[0]['_id'] == 'doc1'
+        assert docs[1]['_id'] == 'doc2'
+
+        # Check that post was called with correct data
+        mock_resource.post.assert_called_once()
+        call_args = mock_resource.post.call_args
+        assert call_args[0][0] == "_find"
+
+        # Check the data payload
+        import json
+        data = json.loads(call_args[1]['data'])
+        assert data['selector'] == selector
+        assert data['limit'] == 10
+
+    def test_database_find_method_empty_result(self):
+        """Test find method with empty result."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_result = {'docs': []}
+        mock_resource.post.return_value = (mock_response, mock_result)
+
+        db = client.Database(mock_resource, "testdb")
+        selector = {'name': {'$exists': True}}
+
+        docs = list(db.find(selector))
+        assert len(docs) == 0
+
+    def test_database_find_method_none_result(self):
+        """Test find method with None result."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_resource.post.return_value = (mock_response, None)
+
+        db = client.Database(mock_resource, "testdb")
+        selector = {'name': {'$exists': True}}
+
+        docs = list(db.find(selector))
+        assert len(docs) == 0
+
+    @patch('pycouchdb.client.view_pages')
+    def test_database_view_pages_method(self, mock_view_pages):
+        """Test the view_pages method."""
+        mock_resource = Mock()
+        mock_pages = [
+            [{'id': 'doc1', 'key': 'key1', 'value': 'value1'}],
+            [{'id': 'doc2', 'key': 'key2', 'value': 'value2'}]
+        ]
+        mock_view_pages.return_value = iter(mock_pages)
+
+        db = client.Database(mock_resource, "testdb")
+
+        pages = list(db.view_pages("test/view", 2, {'include_docs': True}))
+
+        assert len(pages) == 2
+        mock_view_pages.assert_called_once()
+
+        # Check that the fetch function was called correctly
+        call_args = mock_view_pages.call_args
+        assert call_args[0][1] == "test/view"  # view parameter
+        assert call_args[0][2] == 2  # page_size parameter
+        assert call_args[0][3] == {'include_docs': True}  # params parameter
+
+    @patch('pycouchdb.client.mango_pages')
+    def test_database_mango_pages_method(self, mock_mango_pages):
+        """Test the mango_pages method."""
+        mock_resource = Mock()
+        mock_pages = [
+            [{'_id': 'doc1', 'name': 'Alice'}],
+            [{'_id': 'doc2', 'name': 'Bob'}]
+        ]
+        mock_mango_pages.return_value = iter(mock_pages)
+
+        db = client.Database(mock_resource, "testdb")
+        selector = {'name': {'$exists': True}}
+
+        pages = list(db.mango_pages(selector, 2, {'sort': [{'name': 'asc'}]}))
+
+        assert len(pages) == 2
+        mock_mango_pages.assert_called_once()
+
+        # Check that the fetch function was called correctly
+        call_args = mock_mango_pages.call_args
+        assert call_args[0][1] == selector  # selector parameter
+        assert call_args[0][2] == 2  # page_size parameter
+        assert call_args[0][3] == {'sort': [{'name': 'asc'}]}  # params parameter
+
+    def test_database_view_pages_fetch_function(self):
+        """Test that view_pages creates correct fetch function."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_result = {'rows': [{'id': 'doc1', 'key': 'key1', 'value': 'value1'}]}
+
+        # Mock the resource call chain
+        mock_view_resource = Mock()
+        mock_view_resource.get.return_value = (mock_response, mock_result)
+        mock_resource.return_value = mock_view_resource
+
+        db = client.Database(mock_resource, "testdb")
+
+        # This will call the internal fetch function
+        list(db.view_pages("test/view", 2))
+
+        # Check that the resource was called with correct path
+        mock_resource.assert_called_with("_design", "test", "_view", "view")
+
+        # Check that get was called with encoded parameters
+        mock_view_resource.get.assert_called_once()
+        call_args = mock_view_resource.get.call_args
+        params = call_args[1]['params']
+        assert params['limit'] == 3  # page_size + 1
+
+    def test_database_view_pages_encodes_cursor_once(self):
+        """The client fetcher must not re-encode paginator view parameters."""
+        mock_resource = Mock()
+        mock_view_resource = Mock()
+        mock_resource.return_value = mock_view_resource
+        mock_view_resource.get.side_effect = [
+            (Mock(), {
+                'rows': [
+                    {'id': 'doc1', 'key': 'Alice', 'value': None},
+                    {'id': 'doc2', 'key': 'Bob', 'value': None},
+                    {'id': 'doc3', 'key': 'Carol', 'value': None},
+                ],
+            }),
+            (Mock(), {'rows': [{'id': 'doc3', 'key': 'Carol', 'value': None}]}),
+        ]
+
+        pages = list(client.Database(mock_resource, "testdb").view_pages("test/view", 2))
+
+        assert [[row['id'] for row in page] for page in pages] == [['doc1', 'doc2'], ['doc3']]
+        second_params = mock_view_resource.get.call_args_list[1].kwargs['params']
+        assert second_params['startkey'] == '"Bob"'
+        assert second_params['startkey_docid'] == 'doc2'
+        assert second_params['skip'] == 1
+
+    def test_database_mango_pages_fetch_function(self):
+        """Test that mango_pages creates correct fetch function."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_result = {'docs': [{'_id': 'doc1', 'name': 'Alice'}]}
+        mock_resource.post.return_value = (mock_response, mock_result)
+
+        db = client.Database(mock_resource, "testdb")
+        selector = {'name': {'$exists': True}}
+
+        # This will call the internal fetch function
+        list(db.mango_pages(selector, 2))
+
+        # Check that post was called with correct endpoint
+        mock_resource.post.assert_called_once()
+        call_args = mock_resource.post.call_args
+        assert call_args[0][0] == "_find"
+
+        # Check the data payload
+        import json
+        data = json.loads(call_args[1]['data'])
+        assert data['selector'] == selector
+        assert data['limit'] == 2
