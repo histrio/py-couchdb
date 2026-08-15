@@ -22,6 +22,14 @@ def _validate_page_size(page_size: PageSize) -> None:
         raise ValueError("page_size must be a positive integer")
 
 
+def _validate_view_params(params: Dict[str, Any]) -> None:
+    """Reject view options that cannot be combined with cursor pagination."""
+    if 'keys' in params:
+        raise ValueError("view cursor pagination does not support the 'keys' option")
+    if params.get('reduce') is True:
+        raise ValueError("view cursor pagination requires map rows; pass reduce=False")
+
+
 def view_pages(
     fetch: Callable[[Dict[str, Any]], Tuple[Any, Optional[Dict[str, Any]]]],
     view: str,
@@ -35,10 +43,9 @@ def view_pages(
     managing startkey and startkey_docid parameters for stable pagination.
 
     .. warning::
-        Pagination with grouped and reduced views (group=true, reduce=true) is
-        inefficient and unreliable. CouchDB must process all preceding groups
-        for skip operations, and total_rows/offset values are inconsistent with
-        reduced output. Consider fetching all results at once for reduced views.
+        Cursor pagination requires map rows and does not support ``reduce=true``
+        or the ``keys`` option. Pass ``reduce=false`` for views that define a
+        reduce function.
 
     :param fetch: Function that makes the actual HTTP request and returns (response, result)
     :param view: View name (e.g., "design/view")
@@ -50,6 +57,8 @@ def view_pages(
 
     if params is None:
         params = {}
+
+    _validate_view_params(params)
 
     # Create a copy to avoid modifying the original
     query_params = copy.deepcopy(params)
@@ -80,22 +89,26 @@ def view_pages(
 
         rows = result['rows']
 
+        if rows and ('key' not in rows[0] or 'id' not in rows[0]):
+            raise ValueError(
+                "view cursor pagination requires map rows with 'key' and 'id'; "
+                "pass reduce=False for reduced views"
+            )
+
         # If we got fewer rows than requested, this is the last page
         if len(rows) <= page_size:
             if rows:  # Only yield if there are rows
                 yield rows
             break
 
-        # We got more rows than page_size, so there are more pages
-        # Yield current page (excluding the extra row)
-        current_page = rows[:page_size]
-        yield current_page
-
         # Set up for next page using the last row as cursor
         last_row = rows[page_size - 1]
         startkey = last_row['key']
         startkey_docid = last_row['id']
         skip = 1  # Skip cursor row to avoid duplicates.
+
+        # We got more rows than page_size, so there are more pages.
+        yield rows[:page_size]
 
 
 def mango_pages(

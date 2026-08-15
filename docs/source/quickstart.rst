@@ -238,7 +238,7 @@ Use `mango_pages()` for paginating through Mango query results:
 Key Benefits
 ~~~~~~~~~~~
 
-- **Stable pagination**: No duplicate or missing results during concurrent updates
+- **Cursor-based pagination**: Avoids the offset drift caused by ``skip``
 - **Automatic cursor management**: No manual `skip` parameter handling
 - **Memory efficient**: Process large datasets page by page
 - **Consistent API**: Same interface for both view and Mango pagination

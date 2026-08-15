@@ -4,8 +4,7 @@ Unit tests for pycouchdb.client.Database class.
 
 import pytest
 import json
-import uuid
-from unittest.mock import Mock, patch, MagicMock, call
+from unittest.mock import Mock, patch, call
 from pycouchdb import client, exceptions
 
 
@@ -408,7 +407,7 @@ class TestDatabase:
 
         db = client.Database(mock_resource, "testdb")
         docs = [{"_id": "doc1", "_rev": "1-abc", "name": "doc1"}]
-        result = db.delete_bulk(docs, transaction=False)
+        db.delete_bulk(docs, transaction=False)
 
         # The method sends docs with _rev included
         expected_docs = [{"_id": "doc1", "_rev": "1-abc", "name": "doc1", "_deleted": True}]
@@ -1187,7 +1186,7 @@ class TestDatabase:
         db = client.Database(mock_resource, "testdb")
 
         # This will call the internal fetch function
-        pages = list(db.view_pages("test/view", 2))
+        list(db.view_pages("test/view", 2))
 
         # Check that the resource was called with correct path
         mock_resource.assert_called_with("_design", "test", "_view", "view")
@@ -1233,7 +1232,7 @@ class TestDatabase:
         selector = {'name': {'$exists': True}}
 
         # This will call the internal fetch function
-        pages = list(db.mango_pages(selector, 2))
+        list(db.mango_pages(selector, 2))
 
         # Check that post was called with correct endpoint
         mock_resource.post.assert_called_once()
