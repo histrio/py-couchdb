@@ -149,9 +149,8 @@ class TestUtils:
                 self.content = b'{"key": "value", "invalid": "\xff\xfe"}'
 
         response = MockResponse()
-        result = utils.as_json(response)
-        # Should handle UTF-8 decode error gracefully and still parse JSON
-        assert result == {'key': 'value', 'invalid': '\ufffd\ufffd'}
+        with pytest.raises(UnicodeDecodeError):
+            utils.as_json(response)
 
     def test_as_json_invalid_utf8_with_replacement(self):
         """Test as_json with invalid UTF-8 content that gets replaced."""
@@ -162,9 +161,8 @@ class TestUtils:
                 self.content = b'{"key": "value", "invalid": "\xff\xfe\x80"}'
 
         response = MockResponse()
-        result = utils.as_json(response)
-        # Should handle UTF-8 decode error and parse JSON with replacement characters
-        assert result == {'key': 'value', 'invalid': '\ufffd\ufffd\ufffd'}
+        with pytest.raises(UnicodeDecodeError):
+            utils.as_json(response)
 
     def test_encode_view_options(self):
         """Test encoding view options."""

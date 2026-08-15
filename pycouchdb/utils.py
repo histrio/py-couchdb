@@ -87,12 +87,7 @@ def urljoin(base: str, *path: str) -> str:
 
 def as_json(response: Any) -> Optional[Union[Dict[str, Any], List[Any], str]]:
     if "application/json" in response.headers['content-type']:
-        try:
-            response_src = response.content.decode('utf-8')
-        except UnicodeDecodeError:
-            # Try with error handling for invalid UTF-8
-            response_src = response.content.decode('utf-8', errors='replace')
-
+        response_src = response.content.decode('utf-8')
         if response.content != b'':
             return json.loads(response_src)
         else:
