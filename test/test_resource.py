@@ -2,9 +2,17 @@
 Unit tests for pycouchdb.resource module.
 """
 
+import logging
+
 import pytest
+import requests
 from unittest.mock import Mock, patch
 from pycouchdb import resource, exceptions
+from pycouchdb._logging import logger
+
+
+def test_package_logger_has_null_handler():
+    assert any(isinstance(handler, logging.NullHandler) for handler in logger.handlers)
 
 
 class TestResource:
@@ -164,6 +172,94 @@ class TestResource:
             assert response == mock_response
             assert result == {"result": "success"}
             mock_session_instance.request.assert_called_once()
+
+    def test_resource_request_logs_safe_http_metadata(self, caplog):
+        mock_session = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.headers = {
+            'content-type': 'application/json',
+            'content-length': '18',
+        }
+        mock_response.content = b'{"result": "ok"}'
+        mock_session.request.return_value = mock_response
+        res = resource.Resource(
+            "http://user:url-password@localhost:5984/database?token=url-token",
+            session=mock_session,
+        )
+
+        caplog.set_level(logging.DEBUG, logger="pycouchdb")
+        with patch('pycouchdb.resource.time.perf_counter', side_effect=[10.0, 10.125]):
+            res.get("document", params={
+                "token": "parameter-token",
+                "nested": {"password": "nested-password"},
+                "limit": 5,
+            }, data=b'body-secret')
+
+        messages = [record.getMessage() for record in caplog.records]
+        assert any("http request method=GET path=/database" in message for message in messages)
+        assert any("status=200 elapsed_ms=125.0 response_bytes=18" in message
+                   for message in messages)
+        combined = "\n".join(messages)
+        for secret in ("url-password", "url-token", "parameter-token", "nested-password", "body-secret"):
+            assert secret not in combined
+        assert "param_keys=('limit', 'nested', 'token')" in combined
+
+    def test_resource_stream_logging_does_not_read_response_content(self, caplog):
+        class StreamResponse:
+            status_code = 200
+            headers = {'content-type': 'application/octet-stream', 'content-length': '1024'}
+
+            @property
+            def content(self):
+                raise AssertionError("stream content must not be read for logging")
+
+        mock_session = Mock()
+        mock_session.request.return_value = StreamResponse()
+        res = resource.Resource("http://localhost:5984/", session=mock_session)
+
+        caplog.set_level(logging.DEBUG, logger="pycouchdb")
+        response, result = res.get("attachment", stream=True)
+
+        assert isinstance(response, StreamResponse)
+        assert result is None
+        assert any("response_bytes=1024" in record.getMessage() for record in caplog.records)
+
+    def test_resource_request_logs_only_names_from_sequence_params(self, caplog):
+        mock_session = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.headers = {'content-type': 'application/json'}
+        mock_response.content = b'{}'
+        mock_session.request.return_value = mock_response
+        res = resource.Resource("http://localhost:5984/", session=mock_session)
+
+        caplog.set_level(logging.DEBUG, logger="pycouchdb")
+        res.get("database", params=[
+            ("token", "sequence-token-secret"),
+            ("key", "document-value"),
+        ])
+
+        message = caplog.records[0].getMessage()
+        assert "param_keys=('key', 'token')" in message
+        assert "sequence-token-secret" not in message
+        assert "document-value" not in message
+
+    def test_resource_transport_error_log_does_not_include_exception_text(self, caplog):
+        mock_session = Mock()
+        mock_session.request.side_effect = requests.ConnectionError(
+            "http://user:password@localhost:5984/?token=secret")
+        res = resource.Resource("http://localhost:5984/", session=mock_session)
+
+        caplog.set_level(logging.DEBUG, logger="pycouchdb")
+        with pytest.raises(requests.ConnectionError):
+            res.get("database")
+
+        message = caplog.records[-1].getMessage()
+        assert "http error method=GET path=/database" in message
+        assert "ConnectionError" in message
+        assert "password" not in message
+        assert "secret" not in message
 
     def test_resource_request_with_stream(self):
         """Test Resource request method with stream=True."""

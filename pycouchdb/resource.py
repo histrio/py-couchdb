@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
 import json
+import time
 import requests
-from typing import Optional, Tuple, Any, Dict, List, Union
+from typing import Optional, Tuple, Any, Dict, List, Sequence, Union
 
 from . import utils
 from . import exceptions
 from .types import Credentials, AuthMethod
+from ._logging import logger, parameter_names, response_size, safe_path
 
 # Type aliases for cleaner HTTP method signatures
 HttpPath = Optional[Union[str, List[str]]]
-HttpParams = Optional[Dict[str, Any]]
+HttpParams = Optional[Union[Dict[str, Any], Sequence[Tuple[str, Any]]]]
 HttpHeaders = Optional[Dict[str, str]]
 HttpResponse = Tuple[requests.Response, Optional[Any]]
 
@@ -81,7 +83,31 @@ class Resource:
             raise exceptions.GenericError(result)
 
     def request(self, method: str, path: HttpPath = None, params: HttpParams = None,
-                data: Optional[Any] = None, headers: HttpHeaders = None, stream: bool = False, **kwargs: Any) -> HttpResponse:
+                data: Optional[Any] = None, headers: HttpHeaders = None,
+                stream: bool = False, **kwargs: Any) -> HttpResponse:
+        response, result = self._request_response(
+            method, path, params, data, headers, stream, **kwargs)
+
+        if result is None:
+            return response, result
+
+        if isinstance(result, list):
+            for res in result:
+                self._check_result(response, res)
+        else:
+            self._check_result(response, result)
+
+        return response, result
+
+    def _request_response(self, method: str, path: HttpPath = None,
+                          params: HttpParams = None, data: Optional[Any] = None,
+                          headers: HttpHeaders = None, stream: bool = False,
+                          **kwargs: Any) -> HttpResponse:
+        """Dispatch a request and parse its response without validation.
+
+        Bulk endpoints use this private primitive to log their aggregate result
+        before preserving the normal validation and exception behaviour.
+        """
 
         if headers is None:
             headers = {}
@@ -99,9 +125,25 @@ class Resource:
         if self.timeout is not None and 'timeout' not in kwargs:
             kwargs['timeout'] = self.timeout
 
-        response = self.session.request(method, url, stream=stream,
-                                        data=data, params=params,
-                                        headers=headers, **kwargs)
+        log_path = safe_path(url)
+        param_names = parameter_names(params) if params is not None else ()
+        logger.debug("http request method=%s path=%s param_keys=%r",
+                     method, log_path, param_names)
+        start = time.perf_counter()
+        try:
+            response = self.session.request(method, url, stream=stream,
+                                            data=data, params=params,
+                                            headers=headers, **kwargs)
+        except Exception as error:
+            elapsed = (time.perf_counter() - start) * 1000.0
+            logger.debug("http error method=%s path=%s elapsed_ms=%.1f error=%s",
+                         method, log_path, elapsed, type(error).__name__)
+            raise
+
+        elapsed = (time.perf_counter() - start) * 1000.0
+        logger.debug("http response method=%s path=%s status=%s elapsed_ms=%.1f response_bytes=%s",
+                     method, log_path, response.status_code, elapsed,
+                     response_size(response.headers))
         # Ignore result validation if
         # request is with stream mode
 
@@ -110,15 +152,6 @@ class Resource:
             self._check_result(response, result)
         else:
             result = utils.as_json(response)
-
-        if result is None:
-            return response, result
-
-        if isinstance(result, list):
-            for res in result:
-                self._check_result(response, res)
-        else:
-            self._check_result(response, result)
 
         return response, result
 
