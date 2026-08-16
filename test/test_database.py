@@ -404,11 +404,6 @@ class TestDatabase:
     def test_database_delete_by_document(self):
         """Test Database delete method by document object."""
         mock_resource = Mock()
-        mock_head_response = Mock()
-        mock_head_response.status_code = 200
-        mock_head_response.headers = {"etag": '"1-abc"'}
-        mock_resource.return_value.head.return_value = (mock_head_response, None)
-
         mock_delete_response = Mock()
         mock_delete_response.status_code = 200
         mock_delete_response.json.return_value = {"ok": True, "id": "doc123", "rev": "2-def"}
@@ -420,6 +415,24 @@ class TestDatabase:
 
         assert result is None  # delete method doesn't return anything
         mock_resource.assert_called_once_with("doc123")
+        mock_resource.return_value.head.assert_not_called()
+        mock_resource.return_value.delete.assert_called_once_with(
+            params={"rev": "1-abc"})
+
+    def test_database_delete_document_without_revision_uses_head(self):
+        """Fall back to HEAD when a document does not include a revision."""
+        mock_resource = Mock()
+        mock_head_response = Mock()
+        mock_head_response.headers = {"etag": '"1-abc"'}
+        mock_resource.return_value.head.return_value = (mock_head_response, None)
+        mock_resource.return_value.delete.return_value = (Mock(), {"ok": True})
+
+        db = client.Database(mock_resource, "testdb")
+        db.delete({"_id": "doc123"})
+
+        mock_resource.return_value.head.assert_called_once()
+        mock_resource.return_value.delete.assert_called_once_with(
+            params={"rev": "1-abc"})
 
     def test_database_delete_invalid_document(self):
         """Test Database delete method with invalid document."""
