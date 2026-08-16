@@ -9,7 +9,7 @@ py-couchdb
 
 Release v\ |version|.
 
-py-couchdb is a :ref:`BSD Licensed`, modern pure `Python`_ `CouchDB`_ client.
+py-couchdb is a BSD-3-Clause licensed, modern pure `Python`_ `CouchDB`_ client.
 
 Currently there are several libraries for Python to connect to CouchDB. **Why one more?** It's very simple.
 All seem to be not maintained, all libraries use standard Python libraries for http requests, and are not compatible with Python3.

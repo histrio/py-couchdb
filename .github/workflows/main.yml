@@ -72,6 +72,38 @@ jobs:
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
 
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --extra docs --frozen
+      - name: Build documentation
+        run: uv run sphinx-build -W --keep-going -b html docs/source docs/build/html
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - run: uv sync --extra release --frozen
+      - name: Build distribution artifacts
+        run: uv build --out-dir dist
+      - name: Validate distribution metadata
+        run: uv run --extra release twine check dist/*
+
   integration-tests:
     strategy:
       fail-fast: false
