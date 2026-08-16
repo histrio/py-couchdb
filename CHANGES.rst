@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Version 1.17.0 (unreleased)
---------------------------
+Version 1.17.0 (2026-08-16)
+---------------------------
 
 - Backward incompatibility: Python 3.8 is no longer supported; Python 3.9 or
   later is required.
