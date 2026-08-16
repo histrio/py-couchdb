@@ -1,6 +1,6 @@
 [project]
 name = "pycouchdb"
-version = "1.17.0"
+version = "1.17.1"
 description = "Modern pure python CouchDB Client."
 authors = [
     {name = "Andrey Antukh", email = "niwi@niwi.be"}
