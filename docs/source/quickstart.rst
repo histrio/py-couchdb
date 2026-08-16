@@ -112,19 +112,7 @@ Delete a document:
 Querying a database
 -------------------
 
-With couchDB you can make two types of queries: temporary or view. This is a simple way to make
-a temporary query:
-
-.. code-block:: python
-
-    >>> map_func = "function(doc) { emit(doc.name, 1); }"
-    >>> db.temporary_query(map_func)
-    <generator object _query at 0x7f65bd292870>
-    >>> list(db.temporary_query(map_func))
-    [{'value': 1, 'id': '8b588fa0a3b74a299c6d958467994b9a', 'key': 'Fooo'}]
-
-
-And this is a way to make a query using predefined views:
+Query a design document view with :meth:`~pycouchdb.client.Database.query`:
 
 .. code-block:: python
 
