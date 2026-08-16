@@ -681,6 +681,51 @@ class TestDatabase:
         with pytest.raises(exceptions.NotFound, match="Design document not found"):
             db.compact_view("nonexistent_design")
 
+    def test_database_design_info(self):
+        """Test Database design_info method with a design document name."""
+        mock_resource = Mock()
+        result = {"view_index": {"updater_running": False}}
+        mock_resource.return_value.get.return_value = (Mock(), result)
+
+        db = client.Database(mock_resource, "testdb")
+
+        assert db.design_info("test_design") == result
+        mock_resource.assert_called_once_with(
+            "_design", "test_design", "_info")
+        mock_resource.return_value.get.assert_called_once_with()
+
+    def test_database_design_info_accepts_design_document_id(self):
+        """Test Database design_info method with a full design document ID."""
+        mock_resource = Mock()
+        mock_resource.return_value.get.return_value = (
+            Mock(), {"name": "test_design"})
+
+        db = client.Database(mock_resource, "testdb")
+
+        assert db.design_info("_design/test_design") == {"name": "test_design"}
+        mock_resource.assert_called_once_with(
+            "_design", "test_design", "_info")
+
+    def test_database_design_info_returns_empty_dict_for_empty_response(self):
+        """Test Database design_info method with an empty response."""
+        mock_resource = Mock()
+        mock_resource.return_value.get.return_value = (Mock(), None)
+
+        db = client.Database(mock_resource, "testdb")
+
+        assert db.design_info("test_design") == {}
+
+    def test_database_design_info_not_found(self):
+        """Test Database design_info method propagates NotFound."""
+        mock_resource = Mock()
+        mock_resource.return_value.get.side_effect = exceptions.NotFound(
+            "Design document not found")
+        db = client.Database(mock_resource, "testdb")
+
+        with pytest.raises(exceptions.NotFound,
+                           match="Design document not found"):
+            db.design_info("nonexistent_design")
+
     def test_database_revisions_success(self):
         """Test Database revisions method success."""
         mock_resource = Mock()
