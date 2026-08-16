@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 1.17.1 (2026-08-16)
+---------------------------
+
+- Fixed document deletion to use the supplied document revision, avoiding an
+  unnecessary ``HEAD`` request and correctly detecting stale-document
+  conflicts.
+- Refreshed locked dependencies to address applicable security advisories while
+  retaining Python 3.9 support.
+
 Version 1.17.0 (2026-08-16)
 ---------------------------
 
