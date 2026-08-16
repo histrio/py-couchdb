@@ -337,19 +337,23 @@ class Database:
         """
 
         _id = None
+        _rev = None
         if isinstance(doc_or_id, dict):
             if "_id" not in doc_or_id:
                 raise ValueError("Invalid document, missing _id attr")
             _id = doc_or_id['_id']
+            _rev = doc_or_id.get('_rev')
         else:
             _id = doc_or_id
 
         _log_database_operation("delete", self.name, document_id=_id)
         resource = self.resource(*_id_to_path(_id))
 
-        (r, result) = resource.head()
-        (r, result) = resource.delete(
-            params={"rev": r.headers["etag"].strip('"')})
+        if _rev is None:
+            (r, result) = resource.head()
+            _rev = r.headers["etag"].strip('"')
+
+        (r, result) = resource.delete(params={"rev": _rev})
 
     def delete_bulk(self, docs: List[Document], transaction: bool = True) -> List[BulkItem]:
         """
