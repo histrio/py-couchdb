@@ -394,6 +394,26 @@ def test_compact_view_02(db):
         db.compact_view("fooo")
 
 
+def test_design_info(db):
+    doc = {
+        "_id": "_design/design_info",
+        "views": {
+            "names": {
+                "map": "function(doc) { emit(doc.name, 1); }",
+            }
+        }
+    }
+
+    db.save(doc)
+
+    info = db.design_info("design_info")
+    assert "view_index" in info
+
+    full_id_info = db.design_info("_design/design_info")
+    assert full_id_info["name"] == info["name"] == "design_info"
+    assert "view_index" in full_id_info
+
+
 def test_attachments_01(db, rec_with_attachment):
     doc = db.get("kk1")
     assert "_attachments" in doc

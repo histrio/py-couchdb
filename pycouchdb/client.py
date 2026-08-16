@@ -601,6 +601,27 @@ class Database:
             return {}
         return result
 
+    def design_info(self, ddoc: str) -> Dict[str, Any]:
+        """
+        Get design document information, including view index state.
+
+        :param ddoc: design document name or ``_design/<name>`` identifier.
+        :raises: :py:exc:`~pycouchdb.exceptions.NotFound`
+            if a design document does not exist.
+
+        .. seealso:: https://docs.couchdb.org/en/stable/api/ddoc/common.html
+        """
+        if ddoc.startswith("_design/"):
+            path = _id_to_path(ddoc)
+        else:
+            path = ["_design", ddoc]
+
+        _log_database_operation("design_info", self.name, document_id=ddoc)
+        (_, result) = self.resource(*path, "_info").get()
+        if result is None:
+            return {}
+        return result
+
     def revisions(self, doc_id: str, status: str = 'available', params: Optional[Dict[str, Any]] = None, **kwargs: Any) -> Iterator[Document]:
         """
         Get all revisions of one document.
