@@ -4,8 +4,7 @@ import json
 from urllib.parse import unquote as _unquote
 from urllib.parse import urlunsplit, urlsplit
 from functools import reduce
-from typing import Union, Optional, Tuple, List, Dict, Any
-from typing_extensions import Final
+from typing import Union, Optional, Tuple, List, Dict, Any, Final
 
 string_type = str
 bytes_type = bytes

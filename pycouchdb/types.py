@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from typing import Union, Dict, List, Any, Optional, TypedDict, Protocol, Tuple
-from typing_extensions import Final
+from typing import Union, Dict, List, Any, Optional, TypedDict, Protocol, Tuple, Final
 
 # JSON type alias for all valid JSON values
 Json = Union[Dict[str, Any], List[Any], str, int, float, bool, None]
