@@ -151,6 +151,113 @@ make a query using predefined views with Python:
     [{'value': 1, 'key': 'Fooo'}]
 
 
+View query options
+~~~~~~~~~~~~~~~~~~
+
+``Database.query()`` forwards any extra keyword arguments to CouchDB as
+view query options. Every option below is exercised by the test suite
+(see ``test/integration/test_integration.py``). Start from a design
+document with a plain map view and a view with a reduce function:
+
+.. code-block:: python
+
+    >>> _doc = {
+    ...     "_id": "_design/testing",
+    ...     "views": {
+    ...         "names": {
+    ...             "map": "function(doc) { emit(doc.name, 1); }"
+    ...         },
+    ...         "total": {
+    ...             "map": "function(doc) { emit(doc.name, 1); }",
+    ...             "reduce": "function(k, v) { return sum(v); }"
+    ...         }
+    ...     }
+    ... }
+    >>> db.save(_doc)
+    >>> db.save_bulk([
+    ...     {"_id": "kk1", "name": "Florian"},
+    ...     {"_id": "kk2", "name": "Raphael"},
+    ...     {"_id": "kk3", "name": "Jaideep"},
+    ...     {"_id": "kk4", "name": "Andrew"},
+    ...     {"_id": "kk5", "name": "Pepe"},
+    ...     {"_id": "kk6", "name": "Alex"},
+    ... ])
+
+Return only the row matching a single ``key``:
+
+.. code-block:: python
+
+    >>> list(db.query("testing/names", key="Florian"))
+    [{'id': 'kk1', 'key': 'Florian', 'value': 1}]
+
+Query several ``keys`` at once (sent as a JSON ``POST`` body):
+
+.. code-block:: python
+
+    >>> list(db.query("testing/names", keys=["Pepe", "Alex"]))
+    [{'id': 'kk5', 'key': 'Pepe', 'value': 1},
+     {'id': 'kk6', 'key': 'Alex', 'value': 1}]
+
+Limit the result to a key range with ``startkey``/``endkey``
+(both bounds are inclusive):
+
+.. code-block:: python
+
+    >>> list(db.query("testing/names", startkey="Andrew", endkey="Florian"))
+    [{'id': 'kk4', 'key': 'Andrew', 'value': 1},
+     {'id': 'kk1', 'key': 'Florian', 'value': 1}]
+
+Cap the number of returned rows with ``limit``:
+
+.. code-block:: python
+
+    >>> list(db.query("testing/names", limit=2))
+    [{'id': 'kk6', 'key': 'Alex', 'value': 1},
+     {'id': 'kk4', 'key': 'Andrew', 'value': 1}]
+
+Attach the full document to every row with ``include_docs``:
+
+.. code-block:: python
+
+    >>> rows = list(db.query("testing/names", include_docs=True))
+    >>> rows[0]["doc"]["name"]
+    'Alex'
+
+Views with a reduce function run it by default; disable it with
+``reduce=False`` to get raw rows:
+
+.. code-block:: python
+
+    >>> list(db.query("testing/total"))
+    [{'key': None, 'value': 6}]
+    >>> list(db.query("testing/total", reduce=False))
+    [{'id': 'kk6', 'key': 'Alex', 'value': 1},
+     {'id': 'kk4', 'key': 'Andrew', 'value': 1},
+     {'id': 'kk1', 'key': 'Florian', 'value': 1},
+     {'id': 'kk3', 'key': 'Jaideep', 'value': 1},
+     {'id': 'kk5', 'key': 'Pepe', 'value': 1},
+     {'id': 'kk2', 'key': 'Raphael', 'value': 1}]
+
+Group reduced results per key with ``group=True``:
+
+.. code-block:: python
+
+    >>> list(db.query("testing/total", group=True))
+    [{'key': 'Alex', 'value': 1},
+     {'key': 'Andrew', 'value': 1},
+     {'key': 'Florian', 'value': 1},
+     {'key': 'Jaideep', 'value': 1},
+     {'key': 'Pepe', 'value': 1},
+     {'key': 'Raphael', 'value': 1}]
+
+.. note::
+
+    For reduce views, combine ``keys`` with ``group=True`` — CouchDB
+    rejects multi-key fetches on reduce views otherwise::
+
+        query_parse_error: Multi-key fetchs for reduce views must use group=true
+
+
 Subscribe to a changes stream feed
 ----------------------------------
 
