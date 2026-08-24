@@ -374,6 +374,59 @@ def test_query_06(db, rec):
     assert result == 1
 
 
+def test_query_with_key(db, view):
+    """Query a view with the key option."""
+    result = db.query("testing/names", key='Florian', as_list=True)
+    assert len(result) == 1
+    assert result[0]['key'] == 'Florian'
+
+
+def test_query_with_keys(db, view):
+    """Query a view with the keys option (sent as a POST body)."""
+    result = db.query("testing/names", keys=['Pepe', 'Alex'], as_list=True)
+    assert [row['key'] for row in result] == ['Pepe', 'Alex']
+
+
+def test_query_with_startkey_endkey(db, view):
+    """Query a view with the startkey/endkey options."""
+    result = db.query("testing/names", startkey='Andrew',
+                      endkey='Florian', as_list=True)
+    assert [row['key'] for row in result] == ['Andrew', 'Florian']
+
+
+def test_query_with_limit(db, view):
+    """Query a view with the limit option."""
+    result = db.query("testing/names", limit=2, as_list=True)
+    assert [row['key'] for row in result] == ['Alex', 'Andrew']
+
+
+def test_query_with_include_docs(db, view):
+    """Query a view with the include_docs option."""
+    result = db.query("testing/names", include_docs=True, as_list=True)
+    assert len(result) == 6
+    assert all(row['doc']['_id'] == row['id'] for row in result)
+
+
+def test_query_with_reduce(db, rec):
+    """Query a view with the reduce option enabled."""
+    result = db.query("testing/names", reduce=True, as_list=True)
+    assert result == [{'key': None, 'value': 3}]
+
+
+def test_query_with_reduce_disabled(db, rec):
+    """Query a view with the reduce option disabled."""
+    result = db.query("testing/names", reduce=False, as_list=True)
+    assert len(result) == 3
+    assert {row['key'] for row in result} == {'Andrey', 'Pepe', 'Alex'}
+
+
+def test_query_with_group(db, rec):
+    """Query a view with the group option."""
+    result = db.query("testing/names", group=True, as_list=True)
+    assert {row['key'] for row in result} == {'Andrey', 'Pepe', 'Alex'}
+    assert all(row['value'] == 1 for row in result)
+
+
 def test_compact_view_01(db):
     doc = {
         "_id": "_design/testing2",

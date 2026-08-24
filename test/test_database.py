@@ -1108,6 +1108,104 @@ class TestDatabase:
         assert len(result) == 1
         assert result[0]["id"] == "doc1"
 
+    def test_database_query_forwards_key_option(self):
+        """Database.query() encodes the key option as a JSON string param."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rows": []}
+        mock_resource.return_value.get.return_value = (mock_response, {"rows": []})
+
+        db = client.Database(mock_resource, "testdb")
+        result = list(db.query("test/view", key="doc1"))
+
+        assert result == []
+        mock_resource.return_value.get.assert_called_once()
+        params = mock_resource.return_value.get.call_args.kwargs["params"]
+        assert params == {"key": '"doc1"'}
+
+    def test_database_query_forwards_keys_option(self):
+        """Database.query() sends the keys option as a JSON POST body."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rows": []}
+        mock_resource.return_value.post.return_value = (mock_response, {"rows": []})
+
+        db = client.Database(mock_resource, "testdb")
+        result = list(db.query("test/view", keys=["doc1", "doc2"]))
+
+        assert result == []
+        mock_resource.return_value.post.assert_called_once()
+        call_args = mock_resource.return_value.post.call_args
+        data = call_args.kwargs["data"]
+        assert data == json.dumps({"keys": ["doc1", "doc2"]}).encode()
+        assert call_args.kwargs["params"] == {}
+
+    def test_database_query_forwards_startkey_endkey(self):
+        """Database.query() encodes startkey/endkey as JSON string params."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rows": []}
+        mock_resource.return_value.get.return_value = (mock_response, {"rows": []})
+
+        db = client.Database(mock_resource, "testdb")
+        result = list(db.query("test/view", startkey="a", endkey="z"))
+
+        assert result == []
+        mock_resource.return_value.get.assert_called_once()
+        params = mock_resource.return_value.get.call_args.kwargs["params"]
+        assert params == {"startkey": '"a"', "endkey": '"z"'}
+
+    def test_database_query_forwards_limit_option(self):
+        """Database.query() forwards the limit option as a plain param."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rows": []}
+        mock_resource.return_value.get.return_value = (mock_response, {"rows": []})
+
+        db = client.Database(mock_resource, "testdb")
+        result = list(db.query("test/view", limit=2))
+
+        assert result == []
+        mock_resource.return_value.get.assert_called_once()
+        params = mock_resource.return_value.get.call_args.kwargs["params"]
+        assert params == {"limit": 2}
+
+    def test_database_query_forwards_include_docs_option(self):
+        """Database.query() forwards the include_docs option as a plain param."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rows": []}
+        mock_resource.return_value.get.return_value = (mock_response, {"rows": []})
+
+        db = client.Database(mock_resource, "testdb")
+        result = list(db.query("test/view", include_docs=True))
+
+        assert result == []
+        mock_resource.return_value.get.assert_called_once()
+        params = mock_resource.return_value.get.call_args.kwargs["params"]
+        assert params == {"include_docs": True}
+
+    def test_database_query_forwards_reduce_and_group_options(self):
+        """Database.query() forwards the reduce/group options as plain params."""
+        mock_resource = Mock()
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {"rows": []}
+        mock_resource.return_value.get.return_value = (mock_response, {"rows": []})
+
+        db = client.Database(mock_resource, "testdb")
+        result = list(db.query("test/view", reduce=False, group=True))
+
+        assert result == []
+        mock_resource.return_value.get.assert_called_once()
+        params = mock_resource.return_value.get.call_args.kwargs["params"]
+        assert params == {"reduce": False, "group": True}
+
     def test_database_changes_list_success(self):
         """Test Database changes_list method success."""
         mock_resource = Mock()
